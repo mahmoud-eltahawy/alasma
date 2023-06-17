@@ -4,10 +4,9 @@ version = "0.0.0"
 edition = "2021"
 
 [workspace]
-members = ["src-tauri","excel-io","tester"]
+members = ["src-tauri"]
 
 [workspace.dependencies]
-excel-io = {path = "./excel-io"}
 chrono = "0.4.26"
 serde = "^1"
 serde_json = "^1"
