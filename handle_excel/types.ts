@@ -11,9 +11,9 @@ function validateKeys(keys: IterableIterator<string>): number[] {
   }
   const rerows: number[] = [];
   for (let [row, columns] of rows.entries()) {
-    if (columns.length >= 5) {
-      columns = columns.filter((x) => x !== "F" && x !== "E");
-      if (columns.length === 6 || columns.length === 5) {
+    if (columns.length >= 6) {
+      columns = columns.filter((x) => x !== "I" && x !== "H");
+      if (columns.length === 6) {
         rerows.push(row);
       }
     }
@@ -21,32 +21,33 @@ function validateKeys(keys: IterableIterator<string>): number[] {
   return rerows;
 }
 
-type BoughtsRow = {
+type TypesRow = {
   id: number;
-  pill_number: number;
-  cargo_name: string;
-  cargo_number: number;
-  cost: number;
-  type_number: number;
   date: number;
+  pill_number: number;
+  type_number: number;
+  type_name: string;
+  type_quantity: number;
+  cost: number;
 };
 
-export async function scrapBoughtsSheet(path: string) {
+export async function scrapTypesSheet(path: string) {
   const sheet: Map<string, any> = map(
-    map(await xlsx.readFile(path).Sheets).get("اصناف "),
+    map(await xlsx.readFile(path).Sheets).get("كارت صنف المبيعات"),
   );
-  const rows: BoughtsRow[] = [];
+  const rows: TypesRow[] = [];
   for (const rowNumber of validateKeys(sheet.keys())) {
     const getKey = (x: string) => sheet.get(x + rowNumber)?.v;
-    const row: BoughtsRow = {
+    const row: TypesRow = {
       id: rowNumber,
-      pill_number: getKey("A") as number,
-      cargo_name: getKey("B") as string,
-      cargo_number: getKey("C") as number,
-      cost: getKey("D") as number,
-      type_number: getKey("G") ||
-        rows.find((x) => x.id === (rowNumber - 1))?.type_number,
-      date: getKey("H") as number,
+      date: getKey("B") as number,
+      pill_number: getKey("C") as number,
+      type_number: typeof getKey("D") === "number"
+        ? getKey("D")
+        : +getKey("D").trim(),
+      type_name: getKey("E") as string,
+      type_quantity: getKey("F") as number,
+      cost: getKey("G") as number,
     };
     if (typeof row.pill_number === "number") {
       rows.push(row);
