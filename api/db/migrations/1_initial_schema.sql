@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS cargo(
-       id UUID PRIMARY KEY,
+       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY NOT NULL,
        the_name VARCHAR(500),
        cargo_number  BIGINT
 );
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS bill(
 );
 
 CREATE TABLE IF NOT EXISTS cargo_bill(
-       id UUID PRIMARY KEY,
+       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY NOT NULL,
        cargo_id UUID,
        bill_number BIGINT,
        quantity BIGINT,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS cargo_bill(
 );
 
 CREATE TABLE IF NOT EXISTS buy_bill(
-       id UUID PRIMARY KEY,
+       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY NOT NULL,
        cargo_id UUID,
        bill_number BIGINT,
        quantity BIGINT,
@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS buy_bill(
 );
 
 CREATE TABLE IF NOT EXISTS client(
-       id UUID PRIMARY KEY,
+       id UUID DEFAULT uuid_generate_v4() PRIMARY KEY NOT NULL,
+       cargo_id UUID,
        the_name VARCHAR(500)
 );
 
