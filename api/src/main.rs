@@ -2,6 +2,7 @@ mod config;
 mod repo;
 mod service;
 
+use chrono::NaiveDate;
 use config::{get_config_postgres_url, get_configs_server, set_debug_configs};
 use dotenv::dotenv;
 
@@ -30,6 +31,7 @@ async fn main() -> std::io::Result<()> {
             }))
             .wrap(Logger::default())
             .service(sells::scope())
+            .service(bill::scope())
     })
     .bind(get_configs_server())?
     .run()
@@ -54,50 +56,51 @@ async fn connect_db_pool() -> Pool<Postgres> {
 
 use uuid::Uuid;
 
-// struct Cargo{
-//     id : Uuid,
-//     the_name :  String,
-//     cargo_number :  i64,
-// }
+#[derive(Serialize,Deserialize)]
+pub struct Bill{
+   id : Uuid,
+   bill_number : Option<i64>,
+   the_date : Option<NaiveDate>,
+   is_sell : bool, 
+}
 
-// struct Bill{
-//    bill_number : i64,
-//    the_date : NaiveDate,
-// }
+#[derive(Serialize,Deserialize)]
+struct CargoBill{
+   id : Uuid,
+   cargo_name : Option<String>,
+   bill_number : Option<i64>,
+   quantity : Option<i64>,
+   one_cost : Option<i64>,
+}
 
-// struct CargoBill{
-//    id : Uuid,
-//    cargo_id : Option<Uuid>,
-//    bill_number : Option<i64>,
-//    quantity : Option<i64>,
-//    one_cost : Option<i64>,
-// }
+#[derive(Serialize,Deserialize)]
+pub struct BuyBill{
+   id : Uuid,
+   cargo_name : Option<String>,
+   bill_number : Option<i64>,
+   quantity : Option<i64>,
+   one_cost : Option<f64>,
+}
 
-// pub struct BuyBill{
-//     id : Uuid,
-//     cargo_id : Option<Uuid>,
-//     bill_number : Option<i64>,
-//     quantity : Option<i64>,
-//     one_cost : Option<f64>,
-// }
+#[derive(Serialize,Deserialize)]
+pub struct Client{
+    id : Uuid,
+    cargo_id : Uuid,
+    the_name : String
+}
 
-// pub struct Client{
-//     id : Uuid,
-//     cargo_id : Uuid,
-//     the_name : String
-// }
-
-// pub struct Company{
-//     id : Uuid,
-//     the_name : String
-// }
+#[derive(Serialize,Deserialize)]
+pub struct Company{
+    id : Uuid,
+    the_name : String
+}
 
 #[derive(Serialize,Deserialize)]
 pub struct SellBill{
-    bill_number : i64,
+    bill_id : Uuid,
     tax_number : Option<i64>,
     company_id : Option<Uuid>,
     client_id : Option<Uuid>,
     total_cost : Option<BigDecimal>,
-    discount : Option<BigDecimal>,
+    discount : BigDecimal,
 }

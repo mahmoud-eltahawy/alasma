@@ -1,21 +1,22 @@
 use sqlx::query;
+use uuid::Uuid;
 use std::error::Error;
 
 use crate::{AppState, SellBill};
 
-pub async fn fetch_sell_bill_by_number(
+pub async fn fetch_sell_bill_by_id(
     state: &AppState,
-    number: i64,
+    id : Uuid,
 ) -> Result<SellBill, Box<dyn Error>> {
     let record = query!(
         r#"
         select *
-        from sell_bill WHERE bill_number = $1"#,
-    number)
+        from sell_bill WHERE bill_id = $1"#,
+    id)
     .fetch_one(&state.db)
     .await?;
     Ok(SellBill {
-	bill_number: record.bill_number,
+	bill_id: record.bill_id,
 	tax_number: record.tax_number,
 	company_id: record.company_id,
 	client_id: record.client_id,
@@ -24,15 +25,15 @@ pub async fn fetch_sell_bill_by_number(
     })
 }
 
-pub async fn delete_sell_bill_by_number(
+pub async fn delete_sell_bill_by_id(
     state: &AppState,
-    number: i64,
+    id : Uuid,
 ) -> Result<(), Box<dyn Error>> {
     query!(
         r#"
         DELETE
-        FROM sell_bill WHERE bill_number = $1"#,
-    number)
+        FROM sell_bill WHERE bill_id = $1"#,
+    id)
     .execute(&state.db)
     .await?;
     Ok(())
@@ -43,7 +44,7 @@ pub async fn save_sell_bill(
     sell_bill : SellBill,
 ) -> Result<(), Box<dyn Error>> {
     let SellBill {
-	bill_number,
+	bill_id,
 	tax_number,
 	company_id,
 	client_id,
@@ -53,14 +54,14 @@ pub async fn save_sell_bill(
     query!(
         r#"
         INSERT INTO sell_bill(
-          bill_number,
+          bill_id,
 	  tax_number,
 	  company_id,
 	  client_id,
 	  total_cost,
 	  discount
         ) VALUES ($1,$2,$3,$4,$5,$6)"#,
-	bill_number,
+	bill_id,
 	tax_number,
 	company_id,
 	client_id,
@@ -77,7 +78,7 @@ pub async fn update_sell_bill(
     sell_bill : SellBill,
 ) -> Result<(), Box<dyn Error>> {
     let SellBill {
-	bill_number,
+	bill_id,
 	tax_number,
 	company_id,
 	client_id,
@@ -92,8 +93,8 @@ pub async fn update_sell_bill(
 	  client_id = $4,
 	  total_cost = $5,
 	  discount = $6
-        WHERE bill_number = $1"#,
-	bill_number,
+        WHERE bill_id = $1"#,
+	bill_id,
 	tax_number,
 	company_id,
 	client_id,
