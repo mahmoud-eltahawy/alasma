@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS sell_bill(
        company_id UUID,
        client_id UUID,
        total_cost DECIMAL,
-       discount DECIMAL DEFAULT 0,
+       discount DECIMAL DEFAULT 0 NOT NULL,
        FOREIGN KEY(bill_number) REFERENCES bill(bill_number),
        FOREIGN KEY(company_id) REFERENCES company(id),
        FOREIGN KEY(client_id) REFERENCES client(id)

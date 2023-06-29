@@ -300,6 +300,7 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "bcrypt",
+ "bigdecimal",
  "chrono",
  "dotenv",
  "env_logger",
@@ -422,6 +423,18 @@ dependencies = [
  "blowfish",
  "getrandom 0.2.10",
  "zeroize",
+]
+
+[[package]]
+name = "bigdecimal"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a6773ddc0eafc0e509fb60e48dff7f450f8e674a0686ae8605e8d9901bd5eefa"
+dependencies = [
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -3860,6 +3873,7 @@ dependencies = [
  "ahash 0.7.6",
  "atoi",
  "base64 0.13.1",
+ "bigdecimal",
  "bitflags",
  "byteorder",
  "bytes",
@@ -3884,6 +3898,7 @@ dependencies = [
  "log",
  "md-5",
  "memchr",
+ "num-bigint",
  "once_cell",
  "paste",
  "percent-encoding",
