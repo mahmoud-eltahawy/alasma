@@ -3,13 +3,21 @@ mod repo;
 mod service;
 
 use chrono::NaiveDate;
-use config::{get_config_postgres_url, get_configs_server, set_debug_configs};
+use config::{
+    get_config_postgres_url, get_configs_server,
+    set_debug_configs,
+};
 use dotenv::dotenv;
 
-use actix_web::{middleware::Logger, web::Data, App, HttpServer};
+use actix_web::{
+    middleware::Logger, web::Data, App, HttpServer,
+};
 
-use serde::{Serialize, Deserialize};
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres, types::BigDecimal};
+use serde::{Deserialize, Serialize};
+use sqlx::{
+    postgres::PgPoolOptions, types::BigDecimal, Pool,
+    Postgres,
+};
 
 pub struct AppState {
     pub db: Pool<Postgres>,
@@ -31,6 +39,7 @@ async fn main() -> std::io::Result<()> {
             }))
             .wrap(Logger::default())
             .service(sells::scope())
+            .service(boughts::scope())
             .service(bill::scope())
     })
     .bind(get_configs_server())?
@@ -56,51 +65,51 @@ async fn connect_db_pool() -> Pool<Postgres> {
 
 use uuid::Uuid;
 
-#[derive(Serialize,Deserialize)]
-pub struct Bill{
-   id : Uuid,
-   bill_number : Option<i64>,
-   the_date : Option<NaiveDate>,
-   is_sell : bool, 
+#[derive(Serialize, Deserialize)]
+pub struct Bill {
+    id: Uuid,
+    bill_number: Option<i64>,
+    the_date: Option<NaiveDate>,
+    is_sell: bool,
 }
 
-#[derive(Serialize,Deserialize)]
-struct CargoBill{
-   id : Uuid,
-   cargo_name : Option<String>,
-   bill_number : Option<i64>,
-   quantity : Option<i64>,
-   one_cost : Option<i64>,
+#[derive(Serialize, Deserialize)]
+struct CargoBill {
+    id: Uuid,
+    cargo_name: Option<String>,
+    bill_id: Option<Uuid>,
+    quantity: Option<i64>,
+    one_cost: Option<i64>,
 }
 
-#[derive(Serialize,Deserialize)]
-pub struct BuyBill{
-   id : Uuid,
-   cargo_name : Option<String>,
-   bill_number : Option<i64>,
-   quantity : Option<i64>,
-   one_cost : Option<f64>,
+#[derive(Serialize, Deserialize)]
+pub struct BuyBill {
+    id: Uuid,
+    cargo_name: Option<String>,
+    bill_id: Option<Uuid>,
+    quantity: Option<i64>,
+    one_cost: Option<BigDecimal>,
 }
 
-#[derive(Serialize,Deserialize)]
-pub struct Client{
-    id : Uuid,
-    cargo_id : Uuid,
-    the_name : String
+#[derive(Serialize, Deserialize)]
+pub struct Client {
+    id: Uuid,
+    cargo_id: Uuid,
+    the_name: String,
 }
 
-#[derive(Serialize,Deserialize)]
-pub struct Company{
-    id : Uuid,
-    the_name : String
+#[derive(Serialize, Deserialize)]
+pub struct Company {
+    id: Uuid,
+    the_name: String,
 }
 
-#[derive(Serialize,Deserialize)]
-pub struct SellBill{
-    bill_id : Uuid,
-    tax_number : Option<i64>,
-    company_id : Option<Uuid>,
-    client_id : Option<Uuid>,
-    total_cost : Option<BigDecimal>,
-    discount : BigDecimal,
+#[derive(Serialize, Deserialize)]
+pub struct SellBill {
+    bill_id: Uuid,
+    tax_number: Option<i64>,
+    company_id: Option<Uuid>,
+    client_id: Option<Uuid>,
+    total_cost: Option<BigDecimal>,
+    discount: BigDecimal,
 }

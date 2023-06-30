@@ -1,4 +1,4 @@
-use crate::{repo::bill::*, AppState, Bill};
+use crate::{repo::boughts::*, AppState, BuyBill};
 use actix_web::{
     delete, get, post, put,
     web::{self, Data},
@@ -7,7 +7,7 @@ use actix_web::{
 use uuid::Uuid;
 
 pub fn scope() -> Scope {
-    web::scope("/bill")
+    web::scope("/boughts")
         .service(get_by_id)
         .service(save)
         .service(update)
@@ -19,7 +19,9 @@ async fn get_by_id(
     state: Data<AppState>,
     id: web::Path<Uuid>,
 ) -> impl Responder {
-    match fetch_bill_by_id(&state, id.into_inner()).await {
+    match fetch_buy_bill_by_id(&state, id.into_inner())
+        .await
+    {
         Ok(dep) => HttpResponse::Ok().json(dep),
         Err(_) => {
             HttpResponse::InternalServerError().into()
@@ -33,7 +35,7 @@ async fn delete_by_id(
     id: web::Path<Uuid>,
 ) -> impl Responder {
     let id = id.into_inner();
-    match delete_bill_by_id(&state, id).await {
+    match delete_buy_bill_by_id(&state, id).await {
         Ok(_) => HttpResponse::Ok(),
         Err(_) => HttpResponse::InternalServerError(),
     }
@@ -42,10 +44,10 @@ async fn delete_by_id(
 #[post("/")]
 async fn save(
     state: Data<AppState>,
-    dep: web::Json<Bill>,
+    dep: web::Json<BuyBill>,
 ) -> impl Responder {
     let dep = dep.into_inner();
-    match save_bill(&state, dep).await {
+    match save_buy_bill(&state, dep).await {
         Ok(_) => HttpResponse::Ok(),
         Err(_) => HttpResponse::InternalServerError(),
     }
@@ -54,10 +56,10 @@ async fn save(
 #[put("/")]
 async fn update(
     state: Data<AppState>,
-    dep: web::Json<Bill>,
+    dep: web::Json<BuyBill>,
 ) -> impl Responder {
     let dep = dep.into_inner();
-    match update_bill(&state, dep).await {
+    match update_buy_bill(&state, dep).await {
         Ok(_) => HttpResponse::Ok(),
         Err(_) => HttpResponse::InternalServerError(),
     }
