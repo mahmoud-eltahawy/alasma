@@ -40,6 +40,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .service(sells::scope())
             .service(boughts::scope())
+            .service(cargos::scope())
             .service(bill::scope())
     })
     .bind(get_configs_server())?
@@ -74,12 +75,19 @@ pub struct Bill {
 }
 
 #[derive(Serialize, Deserialize)]
-struct CargoBill {
+pub struct Cargo {
     id: Uuid,
     cargo_name: Option<String>,
+    cargo_number : Option<i64>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CargoBill {
+    id: Uuid,
+    cargo_id: Option<Uuid>,
     bill_id: Option<Uuid>,
     quantity: Option<i64>,
-    one_cost: Option<i64>,
+    one_cost: Option<BigDecimal>,
 }
 
 #[derive(Serialize, Deserialize)]

@@ -7,13 +7,20 @@ CREATE TABLE IF NOT EXISTS bill(
        is_sell      BOOLEAN NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS cargo (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY NOT NULL,
+    cargo_name VARCHAR(300),
+    cargo_number BIGINT
+);
+
 CREATE TABLE IF NOT EXISTS cargo_bill(
        id UUID DEFAULT uuid_generate_v4() PRIMARY KEY NOT NULL,
-       cargo_name VARCHAR(300),
+       cargo_id UUID,
        bill_id UUID,
        quantity BIGINT,
        one_cost DECIMAL,
-       FOREIGN KEY(bill_id) REFERENCES bill(id)
+       FOREIGN KEY(bill_id) REFERENCES bill(id),
+       FOREIGN KEY(cargo_id) REFERENCES cargo(id)
 );
 
 CREATE TABLE IF NOT EXISTS buy_bill(
