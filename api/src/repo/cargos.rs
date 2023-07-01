@@ -2,95 +2,81 @@ use sqlx::query;
 use uuid::Uuid;
 use std::error::Error;
 
-use crate::{AppState, CargoBill};
+use crate::{AppState, Cargo};
 
-pub async fn fetch_cargo_bill_by_id(
+pub async fn fetch_cargo_by_id(
     state: &AppState,
     id : Uuid,
-) -> Result<CargoBill, Box<dyn Error>> {
+) -> Result<Cargo, Box<dyn Error>> {
     let record = query!(
         r#"
         select *
-        from cargo_bill WHERE id = $1"#,
+        from cargo WHERE id = $1"#,
     id)
     .fetch_one(&state.db)
     .await?;
-    Ok(CargoBill {
+    Ok(Cargo {
 	id : record.id,
-	cargo_id : record.cargo_id,
-	bill_id : record.bill_id,
-	quantity : record.quantity,
-	one_cost : record.one_cost,
+	cargo_name : record.cargo_name,
+	cargo_number : record.cargo_number,
     })
 }
 
-pub async fn delete_cargo_bill_by_id(
+pub async fn delete_cargo_by_id(
     state: &AppState,
     id : Uuid,
 ) -> Result<(), Box<dyn Error>> {
     query!(
         r#"
         DELETE
-        FROM cargo_bill WHERE id = $1"#,
+        FROM cargo WHERE id = $1"#,
     id)
     .execute(&state.db)
     .await?;
     Ok(())
 }
 
-pub async fn save_cargo_bill(
+pub async fn save_cargo(
     state: &AppState,
-    cargo_bill : CargoBill,
+    cargo_bill : Cargo,
 ) -> Result<(), Box<dyn Error>> {
-    let CargoBill {
+    let Cargo {
 	id : _,
-	cargo_id,
-	bill_id,
-	quantity,
-	one_cost,
+	cargo_name,
+	cargo_number,
     } = cargo_bill;
     query!(
         r#"
-        INSERT INTO cargo_bill(
-	cargo_id,
-	bill_id,
-	quantity,
-	one_cost
-        ) VALUES ($1,$2,$3,$4)"#,
-	cargo_id,
-	bill_id,
-	quantity,
-	one_cost,
+        INSERT INTO cargo(
+	cargo_name,
+	cargo_number
+        ) VALUES ($1,$2)"#,
+	cargo_name,
+	cargo_number,
     )
     .execute(&state.db)
     .await?;
     Ok(())
 }
 
-pub async fn update_cargo_bill(
+pub async fn update_cargo(
     state: &AppState,
-    cargo_bill : CargoBill,
+    cargo_bill : Cargo,
 ) -> Result<(), Box<dyn Error>> {
-    let CargoBill {
+    let Cargo {
 	id,
-	cargo_id,
-	bill_id,
-	quantity,
-	one_cost,
+	cargo_name,
+	cargo_number,
     } = cargo_bill;
     query!(
         r#"
-        UPDATE cargo_bill SET
-	    cargo_id = $2,
-	    bill_id = $3,
-	    quantity = $4,
-	    one_cost = $5
+        UPDATE cargo SET
+	    cargo_name = $2,
+	    cargo_number = $3
         WHERE id = $1"#,
 	id,
-	cargo_id,
-	bill_id,
-	quantity,
-	one_cost,
+	cargo_name,
+	cargo_number,
     )
     .execute(&state.db)
     .await?;
