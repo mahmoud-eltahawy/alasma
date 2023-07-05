@@ -1,4 +1,8 @@
 mod app;
+mod sales;
+mod boughts;
+mod cargos;
+mod shared;
 
 use app::*;
 use leptos::*;

@@ -2,7 +2,8 @@ mod config;
 mod repo;
 mod service;
 
-use chrono::NaiveDate;
+pub use models::backend_api::*;
+
 use config::{
     get_config_postgres_url, get_configs_server,
     set_debug_configs,
@@ -13,9 +14,8 @@ use actix_web::{
     middleware::Logger, web::Data, App, HttpServer,
 };
 
-use serde::{Deserialize, Serialize};
 use sqlx::{
-    postgres::PgPoolOptions, types::BigDecimal, Pool,
+    postgres::PgPoolOptions, Pool,
     Postgres,
 };
 
@@ -63,62 +63,4 @@ async fn connect_db_pool() -> Pool<Postgres> {
         .expect("migration failed");
 
     p
-}
-
-use uuid::Uuid;
-
-#[derive(Serialize, Deserialize)]
-pub struct Bill {
-    id: Uuid,
-    bill_number: Option<i64>,
-    the_date: Option<NaiveDate>,
-    is_sell: bool,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Cargo {
-    id: Uuid,
-    cargo_name: Option<String>,
-    cargo_number : Option<i64>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct TypeRow {
-    id: Uuid,
-    cargo_id: Option<Uuid>,
-    bill_id: Option<Uuid>,
-    quantity: Option<i64>,
-    one_cost: Option<BigDecimal>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct BuyBill {
-    id: Uuid,
-    cargo_name: Option<String>,
-    bill_id: Option<Uuid>,
-    quantity: Option<i64>,
-    one_cost: Option<BigDecimal>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Client {
-    id: Uuid,
-    cargo_id: Uuid,
-    the_name: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Company {
-    id: Uuid,
-    the_name: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SellBill {
-    bill_id: Uuid,
-    tax_number: Option<i64>,
-    company_id: Option<Uuid>,
-    client_id: Option<Uuid>,
-    total_cost: Option<BigDecimal>,
-    discount: BigDecimal,
 }
