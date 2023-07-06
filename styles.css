@@ -43,3 +43,31 @@ html {
   border-color: #396cd8;
   background-color: #e8e8e8;
 }
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid black;
+  padding: 5px;
+}
+
+th {
+  background-color: #d3d3d3;
+  text-align: center;
+}
+
+td {
+  text-align: left;
+}
+
+.table-excel {
+  font-family: sans-serif;
+  font-size: 12px;
+  color: #000;
+}
+
+.spanA td {
+    column-span: all;
+}

@@ -49,7 +49,7 @@ pub struct Company {
   pub the_name: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize,Clone)]
 pub struct SellBill {
   pub bill_id: Uuid,
   pub tax_number: Option<i64>,

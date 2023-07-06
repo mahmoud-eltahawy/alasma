@@ -1,6 +1,5 @@
 use leptos::*;
 use leptos_router::*;
-use serde::{Deserialize, Serialize};
 
 use crate::{sales::Sales,boughts::Boughts,cargos::Cargos};
 
