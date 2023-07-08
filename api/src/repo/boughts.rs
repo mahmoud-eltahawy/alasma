@@ -43,7 +43,7 @@ pub async fn save_buy_bill(
     buy_bill : BuyBill,
 ) -> Result<(), Box<dyn Error>> {
     let BuyBill {
-	id : _,
+	id,
 	cargo_name,
 	bill_id,
 	quantity,
@@ -52,11 +52,13 @@ pub async fn save_buy_bill(
     query!(
         r#"
         INSERT INTO buy_bill(
+            id,
 	    cargo_name,
 	    bill_id,
 	    quantity,
 	    one_cost
-        ) VALUES ($1,$2,$3,$4)"#,
+        ) VALUES ($1,$2,$3,$4,$5)"#,
+	id,
 	cargo_name,
 	bill_id,
 	quantity,

@@ -43,7 +43,7 @@ pub async fn save_cargo_bill(
     cargo_bill : TypeRow,
 ) -> Result<(), Box<dyn Error>> {
     let TypeRow {
-	id : _,
+	id,
 	cargo_id,
 	bill_id,
 	quantity,
@@ -52,11 +52,13 @@ pub async fn save_cargo_bill(
     query!(
         r#"
         INSERT INTO cargo_bill(
+        id,
 	cargo_id,
 	bill_id,
 	quantity,
 	one_cost
-        ) VALUES ($1,$2,$3,$4)"#,
+        ) VALUES ($1,$2,$3,$4,$5)"#,
+	id,
 	cargo_id,
 	bill_id,
 	quantity,

@@ -1,34 +1,96 @@
-use chrono::NaiveDate;
+use std::time::Duration;
+
+use bigdecimal::{BigDecimal, FromPrimitive};
+use chrono::{NaiveDate, Local};
 use leptos::*;
 use leptos_router::*;
 
-use models::backend_api::SellBill;
+use tauri_sys::tauri::invoke;
+
+use models::backend_api::{Sheet,SheetType, SellBill, Bill, Company, Client};
+use serde::{Serialize, Deserialize};
+
+use uuid::Uuid;
+use crate::shared::{Non,alert, new_id};
 
 #[derive(Clone)]
 struct NaiveSellBill {
-    bill_number : u64,
-    bill_date : NaiveDate,
+    bill : Bill,
     tax_number : u64,
-    company_name : String,
-    client_name : String,
+    company : Company,
+    client : Option<Client>,
     value : f64,
     discount : f64,
 }
 
+#[derive(Serialize,Deserialize)]
+struct SheetArgs{
+    id : Uuid,
+    name: String,
+}
+
+#[derive(Serialize,Deserialize)]
+struct BillArgs{
+    sellbill : SellBill
+}
+
 #[component]
 pub fn Sales(cx: Scope) -> impl IntoView {
+    let (sheet_name,set_sheet_name) = create_signal(cx,String::from(""));
+    let (sheet_id,set_sheet_id) = create_signal(cx,Uuid::nil());
     let (list,set_list) = create_signal(cx, Vec::<NaiveSellBill>::new());
-    let add_to_list = move |x: NaiveSellBill| {
-	set_list.update(|xs| xs.push(x))
-    };
 
-    create_effect(cx,move |_| {
-	log!("{}",list.get().len())
+    spawn_local(async move {
+	let id = new_id().await;
+	set_sheet_id.set(id);
     });
+
+    let to_sell_bill =move |x : NaiveSellBill| SellBill{
+	    bill_id : x.bill.id,
+	    tax_number : Some(x.tax_number as i64),
+	    company_id : Some(x.company.id),
+	    client_id : x.client.map(|x| x.id),
+	    sheet_id : sheet_id.get(),
+	    total_cost : BigDecimal::from_f64(x.value),
+	    discount : BigDecimal::from_f64(x.discount).unwrap_or_default(),
+	};
+
+    let save_sheet = move |_| {
+      log!("begin");
+      spawn_local(async move {
+	  let succ = match invoke::<SheetArgs,()>("save_sell_sheet", &SheetArgs{
+	      id : sheet_id.get_untracked(),
+	      name : sheet_name.get_untracked(),
+	  }).await {
+	      Err(_) => false,
+	      Ok(()) => true,
+	  };
+
+	  if !succ {
+	      return;
+	  }
+
+	  for x in list.get().into_iter() {
+	    match invoke::<BillArgs,()>("save_sell_bill", &BillArgs{
+		 sellbill : to_sell_bill(x) 
+	      }).await {
+		Ok(()) => alert("تم حفظ الشيت بنجاح"),
+		Err(err) => alert(err.to_string().as_str())
+	    };
+	  }
+      });
+    };
 
     view!{cx,
        <div>
-	  <A class="button" href="/">"الرئيسية"</A><br/>
+	 <A class="button" href="/">"الرئيسية"</A><br/>
+	 <input
+	   type="string"
+	   style="width : 100%;"
+	   placeholder="اسم الشيت"
+	   value=move|| sheet_name.get()
+	   on:input=move|ev| set_sheet_name.set(event_target_value(&ev))
+	  /><br/>
 	  <table class="table-excel">
 	    <thead>
 	      <tr>
@@ -46,16 +108,20 @@ pub fn Sales(cx: Scope) -> impl IntoView {
 	    <tbody>
 	      <For
 	        each=move|| list.get()
-	        key=|b| b.bill_number
+	        key=|b| b.bill.bill_number
 		view=move |cx,b| {
 		    view! {cx,
 		        <ShowRow element={b} writer=set_list/>
 		    }
 		}
 	      />
-	      <InputRow add=add_to_list/>
+	  <InputRow writer=set_list list=list />
 	    </tbody>
-	  </table>
+	  </table><br/>
+	  <button
+	    on:click=save_sheet
+	    style="width : 100%;"
+	  >"حفظ الشيت"</button>
 	  <Outlet/>
 	</div>
     }
@@ -64,13 +130,12 @@ pub fn Sales(cx: Scope) -> impl IntoView {
 #[component]
 fn ShowRow(cx: Scope,element : NaiveSellBill,writer : WriteSignal<Vec<NaiveSellBill>>) -> impl IntoView{
     let (hover,set_hover) = create_signal(cx,false);
-    let x = element.value;
-    let y = 14.0 / 100.0; 
-    let tax = x * y;
+    let tax = element.value * 0.14;
     let total =element.value + tax - element.discount;
 
     let remove_from_list = move |_| {
-	writer.update(|xs| xs.retain(|xs| xs.bill_number != element.bill_number))
+	writer.update(|xs|
+		      xs.retain(|x| x.bill.bill_number != element.bill.bill_number))
     };
 
     view! {cx,
@@ -82,16 +147,16 @@ fn ShowRow(cx: Scope,element : NaiveSellBill,writer : WriteSignal<Vec<NaiveSellB
 	   } else {
 	       view! {cx,<button
 		        on:click=move |_| set_hover.set(true)
-		      >{element.bill_number}</button>
+		      >{element.bill.bill_number}</button>
 	       }
 	   }
 	   }</td>
-	  <td>{element.bill_date.to_string()}</td>
+	  <td>{element.bill.the_date.map(|x| x.to_string())}</td>
 	  <td>{element.tax_number}</td>
-	  <td>{element.company_name}</td>
-	  <td>{element.client_name}</td>
+	  <td>{element.company.the_name}</td>
+	  <td>{element.client.map(|x| x.the_name)}</td>
 	  <td>{element.value}</td>
-	  <td>{tax}</td>
+	  <td>{format!("{:.2}",tax)}</td>
 	  <td>{element.discount}</td>
 	  <td>{total}</td>
 	</tr>
@@ -99,35 +164,68 @@ fn ShowRow(cx: Scope,element : NaiveSellBill,writer : WriteSignal<Vec<NaiveSellB
 }
 
 #[component]
-fn InputRow<T>(cx: Scope,add : T) -> impl IntoView
-    where T : Fn(NaiveSellBill) -> () + 'static
-{
+fn InputRow(
+    cx: Scope,
+    writer : WriteSignal<Vec<NaiveSellBill>>,
+    list: ReadSignal<Vec<NaiveSellBill>>
+) -> impl IntoView{
+    let today = Local::now().date_naive();
+    
     let (bill_number,set_bill_number) : (ReadSignal<u64>,WriteSignal<u64>) = create_signal(cx, 0);
-    let (bill_date,set_bill_date) = create_signal(cx, NaiveDate::from_ymd_opt(2023, 7, 7).unwrap());
+    let (bill_date,set_bill_date) = create_signal(cx, today);
     let (tax_number,set_tax_number) : (ReadSignal<u64>,WriteSignal<u64>)= create_signal(cx, 0);
+    let (company_id,set_company_id) = create_signal(cx, None::<Uuid>);
+    let (client_id,set_client_id) = create_signal(cx, None::<Uuid>);
     let (company_name,set_company_name) = create_signal(cx, String::new());
     let (client_name,set_client_name) = create_signal(cx, String::new());
     let (value,set_value) = create_signal(cx, 0.0);
     let (discount,set_discount) = create_signal(cx, 0.0);
 
-    let tax =move|| {
-	let x = value.get();
-	let y = 14.0 / 100.0; 
-	x * y
-    };
+    let tax =move|| value.get() * 0.14;
+
     let total =move|| value.get() + tax() - discount.get();
 
-    let on_click =move|_| {
-	let sell_bill = NaiveSellBill{
-	    bill_number : bill_number.get(),
-	    bill_date : bill_date.get(),
+    let appendable =move || list.get().into_iter()
+	.all(|y| y.bill.bill_number != bill_number.get() as i64);
+
+    let on_click =move |_| {
+	if !appendable() {
+	    return;
+	}
+      spawn_local(async move {
+	  let x= NaiveSellBill{
+	    bill : Bill{
+		id : new_id().await,
+		bill_number : bill_number.get().try_into().unwrap(),
+		the_date : Some(bill_date.get()),
+		is_sell : true,
+	    },
 	    tax_number : tax_number.get(),
-	    company_name : company_name.get(),
-	    client_name : client_name.get(),
+	    company : match company_id.get() {
+		None => Company{
+		    id : new_id().await,
+		    the_name : company_name.get(),
+		},
+		Some(id) => Company{
+		    id,
+		    the_name : company_name.get(),
+		},
+	    } ,
+	    client :  match client_id.get() {
+		None => Some(Client{
+		    id : new_id().await,
+		    the_name : client_name.get(),
+		}),
+		Some(id) => Some(Client{
+		    id,
+		    the_name : client_name.get(),
+		}),
+	    },
 	    value : value.get(),
 	    discount : discount.get(),
-	};
-	add(sell_bill)
+	  };
+	  writer.update(|xs| xs.push(x))
+      });
     };
 
     view!{cx,
@@ -178,4 +276,3 @@ fn InputRow<T>(cx: Scope,add : T) -> impl IntoView
       </>
     }
 }
-

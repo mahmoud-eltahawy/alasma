@@ -1,6 +1,7 @@
 mod config;
 mod repo;
 mod service;
+use service::*;
 
 pub use models::backend_api::*;
 
@@ -23,7 +24,6 @@ pub struct AppState {
     pub db: Pool<Postgres>,
 }
 
-use service::*;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -43,6 +43,7 @@ async fn main() -> std::io::Result<()> {
             .service(types::scope())
             .service(cargos::scope())
             .service(bill::scope())
+            .service(sheet::scope())
     })
     .bind(get_configs_server())?
     .run()

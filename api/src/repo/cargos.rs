@@ -41,16 +41,18 @@ pub async fn save_cargo(
     cargo_bill : Cargo,
 ) -> Result<(), Box<dyn Error>> {
     let Cargo {
-	id : _,
+	id,
 	cargo_name,
 	cargo_number,
     } = cargo_bill;
     query!(
         r#"
         INSERT INTO cargo(
+        id,
 	cargo_name,
 	cargo_number
-        ) VALUES ($1,$2)"#,
+        ) VALUES ($1,$2,$3)"#,
+	id,
 	cargo_name,
 	cargo_number,
     )

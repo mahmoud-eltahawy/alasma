@@ -20,6 +20,7 @@ pub async fn fetch_sell_bill_by_id(
 	tax_number: record.tax_number,
 	company_id: record.company_id,
 	client_id: record.client_id,
+	sheet_id: record.sheet_id,
 	total_cost: record.total_cost,
 	discount: record.discount,
     })
@@ -48,6 +49,7 @@ pub async fn save_sell_bill(
 	tax_number,
 	company_id,
 	client_id,
+	sheet_id,
 	total_cost,
 	discount,
     } = sell_bill;
@@ -58,13 +60,15 @@ pub async fn save_sell_bill(
 	  tax_number,
 	  company_id,
 	  client_id,
+	  sheet_id,
 	  total_cost,
 	  discount
-        ) VALUES ($1,$2,$3,$4,$5,$6)"#,
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7)"#,
 	bill_id,
 	tax_number,
 	company_id,
 	client_id,
+	sheet_id,
 	total_cost,
 	discount,
     )
@@ -82,6 +86,7 @@ pub async fn update_sell_bill(
 	tax_number,
 	company_id,
 	client_id,
+	sheet_id,
 	total_cost,
 	discount,
     } = sell_bill;
@@ -91,13 +96,15 @@ pub async fn update_sell_bill(
 	  tax_number =$2,
 	  company_id = $3,
 	  client_id = $4,
-	  total_cost = $5,
-	  discount = $6
+	  sheet_id = $5,
+	  total_cost = $6,
+	  discount = $7
         WHERE bill_id = $1"#,
 	bill_id,
 	tax_number,
 	company_id,
 	client_id,
+	sheet_id,
 	total_cost,
 	discount,
     )

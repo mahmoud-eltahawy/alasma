@@ -1,7 +1,15 @@
 use futures::{StreamExt, future};
 use leptos::{spawn_local, window};
-use serde::de::DeserializeOwned;
-use tauri_sys::event::{self, Event};
+use serde::{de::DeserializeOwned, Serialize, Deserialize};
+use tauri_sys::{event::{self, Event},tauri::invoke};
+use uuid::Uuid;
+
+#[derive(Serialize,Deserialize)]
+pub struct Non;
+
+pub async fn new_id() -> Uuid {
+    invoke::<_,Uuid>("new_id", &Non{}).await.unwrap()
+}
 
 pub fn listen<T : DeserializeOwned + 'static>(event_name : String,action : impl Fn(Event<T>) + 'static) {
     spawn_local(async move {
