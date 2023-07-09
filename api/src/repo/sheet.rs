@@ -1,37 +1,39 @@
 use sqlx::query;
-use uuid::Uuid;
 use std::error::Error;
+use uuid::Uuid;
 
 use crate::{AppState, Sheet};
 
 pub async fn fetch_sheet_by_id(
     state: &AppState,
-    id : Uuid,
+    id: Uuid,
 ) -> Result<Sheet, Box<dyn Error>> {
     let record = query!(
         r#"
         select *
         from sheet WHERE id = $1"#,
-    id)
+        id
+    )
     .fetch_one(&state.db)
     .await?;
     Ok(Sheet {
-	id: record.id,
-	the_name: record.the_name,
-	the_date: record.the_date,
-	the_type: serde_json::from_str(&record.the_type).unwrap()
+        id: record.id,
+        the_name: record.the_name,
+        the_date: record.the_date,
+        the_type: serde_json::from_str(&record.the_type).unwrap(),
     })
 }
 
 pub async fn delete_sheet_by_id(
     state: &AppState,
-    id : Uuid,
+    id: Uuid,
 ) -> Result<(), Box<dyn Error>> {
     query!(
         r#"
         DELETE
         FROM sheet WHERE id = $1"#,
-    id)
+        id
+    )
     .execute(&state.db)
     .await?;
     Ok(())
@@ -39,13 +41,13 @@ pub async fn delete_sheet_by_id(
 
 pub async fn save_sheet(
     state: &AppState,
-    sheet : Sheet,
+    sheet: Sheet,
 ) -> Result<(), Box<dyn Error>> {
     let Sheet {
-	id,
-	the_name,
-	the_date,
-	the_type,
+        id,
+        the_name,
+        the_date,
+        the_type,
     } = sheet;
     query!(
         r#"
@@ -55,10 +57,10 @@ pub async fn save_sheet(
 	the_date,
 	the_type
         ) VALUES ($1,$2,$3,$4)"#,
-	id,
-	the_name,
-	the_date,
-	serde_json::json!(the_type).to_string(),
+        id,
+        the_name,
+        the_date,
+        serde_json::json!(the_type).to_string(),
     )
     .execute(&state.db)
     .await?;
@@ -67,13 +69,13 @@ pub async fn save_sheet(
 
 pub async fn update_sheet(
     state: &AppState,
-    sheet : Sheet,
+    sheet: Sheet,
 ) -> Result<(), Box<dyn Error>> {
     let Sheet {
-	id,
-	the_name,
-	the_date,
-	the_type,
+        id,
+        the_name,
+        the_date,
+        the_type,
     } = sheet;
     query!(
         r#"
@@ -82,10 +84,10 @@ pub async fn update_sheet(
 	    the_date = $3,
 	    the_type = $4
         WHERE id = $1"#,
-	id,
-	the_name,
-	the_date,
-	serde_json::json!(the_type).to_string(),
+        id,
+        the_name,
+        the_date,
+        serde_json::json!(the_type).to_string(),
     )
     .execute(&state.db)
     .await?;

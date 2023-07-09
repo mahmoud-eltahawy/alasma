@@ -27,7 +27,7 @@ uuid = {workspace = true , features = ["serde"]}
 chrono = {workspace = true , features = ["serde"]}
 serde_json = {workspace = true}
 bigdecimal = {workspace = true , features = ["serde"]}
-leptos = { version = "0.4" , features = ["csr"] }
+leptos = { version = "^0.4" , features = ["csr"] }
 leptos_router = { version = "^0.4" , features = ["csr"]}
 tauri-sys = { git = "https://github.com/JonasKruckenberg/tauri-sys",features = ["tauri","event"] }
 js-sys = "0.3"

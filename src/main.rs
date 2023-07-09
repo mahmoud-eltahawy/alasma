@@ -1,7 +1,7 @@
 mod app;
-mod sales;
 mod boughts;
 mod cargos;
+mod sales;
 mod shared;
 
 use app::*;

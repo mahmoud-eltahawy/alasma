@@ -1,11 +1,11 @@
 use leptos::*;
 use leptos_router::*;
 
-use crate::{sales::Sales,boughts::Boughts,cargos::Cargos};
+use crate::{boughts::Boughts, cargos::Cargos, sales::Sales};
 
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
-    view!{cx,
+    view! {cx,
         <Router>
           <section>
             <Routes>
@@ -19,15 +19,14 @@ pub fn App(cx: Scope) -> impl IntoView {
     }
 }
 
-
 #[component]
 pub fn Home(cx: Scope) -> impl IntoView {
-    view!{cx,
-	<div>
-	  <A class="button" href="/sales">"المبيعات"</A><br/>
-	  <A class="button" href="/boughts">"المشتريات"</A><br/>
-	  <A class="button" href="/cargos">"الاصناف"</A><br/>
-	  <Outlet/>
-	</div>
+    view! {cx,
+    <div>
+      <A class="button" href="/sales">"المبيعات"</A><br/>
+      <A class="button" href="/boughts">"المشتريات"</A><br/>
+      <A class="button" href="/cargos">"الاصناف"</A><br/>
+      <Outlet/>
+    </div>
     }
 }

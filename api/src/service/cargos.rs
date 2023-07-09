@@ -19,13 +19,9 @@ async fn get_by_id(
     state: Data<AppState>,
     id: web::Path<Uuid>,
 ) -> impl Responder {
-    match fetch_cargo_by_id(&state, id.into_inner())
-        .await
-    {
+    match fetch_cargo_by_id(&state, id.into_inner()).await {
         Ok(dep) => HttpResponse::Ok().json(dep),
-        Err(_) => {
-            HttpResponse::InternalServerError().into()
-        }
+        Err(_) => HttpResponse::InternalServerError().into(),
     }
 }
 
@@ -42,10 +38,7 @@ async fn delete_by_id(
 }
 
 #[post("/")]
-async fn save(
-    state: Data<AppState>,
-    dep: web::Json<Cargo>,
-) -> impl Responder {
+async fn save(state: Data<AppState>, dep: web::Json<Cargo>) -> impl Responder {
     let dep = dep.into_inner();
     match save_cargo(&state, dep).await {
         Ok(_) => HttpResponse::Ok(),

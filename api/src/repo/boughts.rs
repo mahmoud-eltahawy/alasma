@@ -1,38 +1,40 @@
 use sqlx::query;
-use uuid::Uuid;
 use std::error::Error;
+use uuid::Uuid;
 
 use crate::{AppState, BuyBill};
 
 pub async fn fetch_buy_bill_by_id(
     state: &AppState,
-    id : Uuid,
+    id: Uuid,
 ) -> Result<BuyBill, Box<dyn Error>> {
     let record = query!(
         r#"
         select *
         from buy_bill WHERE id = $1"#,
-    id)
+        id
+    )
     .fetch_one(&state.db)
     .await?;
     Ok(BuyBill {
-	id : record.id,
-	cargo_name : record.cargo_name,
-	bill_id : record.bill_id,
-	quantity : record.quantity,
-	one_cost : record.one_cost,
+        id: record.id,
+        cargo_name: record.cargo_name,
+        bill_id: record.bill_id,
+        quantity: record.quantity,
+        one_cost: record.one_cost,
     })
 }
 
 pub async fn delete_buy_bill_by_id(
     state: &AppState,
-    id : Uuid,
+    id: Uuid,
 ) -> Result<(), Box<dyn Error>> {
     query!(
         r#"
         DELETE
         FROM buy_bill WHERE id = $1"#,
-    id)
+        id
+    )
     .execute(&state.db)
     .await?;
     Ok(())
@@ -40,14 +42,14 @@ pub async fn delete_buy_bill_by_id(
 
 pub async fn save_buy_bill(
     state: &AppState,
-    buy_bill : BuyBill,
+    buy_bill: BuyBill,
 ) -> Result<(), Box<dyn Error>> {
     let BuyBill {
-	id,
-	cargo_name,
-	bill_id,
-	quantity,
-	one_cost,
+        id,
+        cargo_name,
+        bill_id,
+        quantity,
+        one_cost,
     } = buy_bill;
     query!(
         r#"
@@ -58,11 +60,11 @@ pub async fn save_buy_bill(
 	    quantity,
 	    one_cost
         ) VALUES ($1,$2,$3,$4,$5)"#,
-	id,
-	cargo_name,
-	bill_id,
-	quantity,
-	one_cost,
+        id,
+        cargo_name,
+        bill_id,
+        quantity,
+        one_cost,
     )
     .execute(&state.db)
     .await?;
@@ -71,14 +73,14 @@ pub async fn save_buy_bill(
 
 pub async fn update_buy_bill(
     state: &AppState,
-    buy_bill : BuyBill,
+    buy_bill: BuyBill,
 ) -> Result<(), Box<dyn Error>> {
     let BuyBill {
-	id,
-	cargo_name,
-	bill_id,
-	quantity,
-	one_cost,
+        id,
+        cargo_name,
+        bill_id,
+        quantity,
+        one_cost,
     } = buy_bill;
     query!(
         r#"
@@ -88,11 +90,11 @@ pub async fn update_buy_bill(
 	    quantity = $4,
 	    one_cost = $5
         WHERE id = $1"#,
-	id,
-	cargo_name,
-	bill_id,
-	quantity,
-	one_cost,
+        id,
+        cargo_name,
+        bill_id,
+        quantity,
+        one_cost,
     )
     .execute(&state.db)
     .await?;

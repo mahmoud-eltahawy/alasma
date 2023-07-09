@@ -19,13 +19,9 @@ async fn get_by_id(
     state: Data<AppState>,
     id: web::Path<Uuid>,
 ) -> impl Responder {
-    match fetch_buy_bill_by_id(&state, id.into_inner())
-        .await
-    {
+    match fetch_buy_bill_by_id(&state, id.into_inner()).await {
         Ok(dep) => HttpResponse::Ok().json(dep),
-        Err(_) => {
-            HttpResponse::InternalServerError().into()
-        }
+        Err(_) => HttpResponse::InternalServerError().into(),
     }
 }
 

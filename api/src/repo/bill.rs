@@ -1,37 +1,39 @@
 use sqlx::query;
-use uuid::Uuid;
 use std::error::Error;
+use uuid::Uuid;
 
 use crate::{AppState, Bill};
 
 pub async fn fetch_bill_by_id(
     state: &AppState,
-    id : Uuid,
+    id: Uuid,
 ) -> Result<Bill, Box<dyn Error>> {
     let record = query!(
         r#"
         select *
         from bill WHERE id = $1"#,
-    id)
+        id
+    )
     .fetch_one(&state.db)
     .await?;
-    Ok(Bill{
-	id : record.id,
-	bill_number : record.bill_number,
-	the_date : record.the_date,
-	is_sell : record.is_sell,
+    Ok(Bill {
+        id: record.id,
+        bill_number: record.bill_number,
+        the_date: record.the_date,
+        is_sell: record.is_sell,
     })
 }
 
 pub async fn delete_bill_by_id(
     state: &AppState,
-    id : Uuid,
+    id: Uuid,
 ) -> Result<(), Box<dyn Error>> {
     query!(
         r#"
         DELETE
         FROM bill WHERE id = $1"#,
-    id)
+        id
+    )
     .execute(&state.db)
     .await?;
     Ok(())
@@ -39,13 +41,13 @@ pub async fn delete_bill_by_id(
 
 pub async fn save_bill(
     state: &AppState,
-    bill : Bill,
+    bill: Bill,
 ) -> Result<(), Box<dyn Error>> {
     let Bill {
-	id,
-	bill_number,
-	the_date,
-	is_sell,
+        id,
+        bill_number,
+        the_date,
+        is_sell,
     } = bill;
     query!(
         r#"
@@ -55,10 +57,10 @@ pub async fn save_bill(
 	    the_date,
 	    is_sell
         ) VALUES ($1,$2,$3,$4)"#,
-	id,
-	bill_number,
-	the_date,
-	is_sell,
+        id,
+        bill_number,
+        the_date,
+        is_sell,
     )
     .execute(&state.db)
     .await?;
@@ -67,13 +69,13 @@ pub async fn save_bill(
 
 pub async fn update_bill(
     state: &AppState,
-    bill : Bill,
+    bill: Bill,
 ) -> Result<(), Box<dyn Error>> {
     let Bill {
-	id,
-	bill_number,
-	the_date,
-	is_sell,
+        id,
+        bill_number,
+        the_date,
+        is_sell,
     } = bill;
     query!(
         r#"
@@ -82,10 +84,10 @@ pub async fn update_bill(
 	    the_date = $3,
 	    is_sell = $4
         WHERE id = $1"#,
-	id,
-	bill_number,
-	the_date,
-	is_sell,
+        id,
+        bill_number,
+        the_date,
+        is_sell,
     )
     .execute(&state.db)
     .await?;

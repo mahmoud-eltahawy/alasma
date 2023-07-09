@@ -1,36 +1,38 @@
 use sqlx::query;
-use uuid::Uuid;
 use std::error::Error;
+use uuid::Uuid;
 
 use crate::{AppState, Cargo};
 
 pub async fn fetch_cargo_by_id(
     state: &AppState,
-    id : Uuid,
+    id: Uuid,
 ) -> Result<Cargo, Box<dyn Error>> {
     let record = query!(
         r#"
         select *
         from cargo WHERE id = $1"#,
-    id)
+        id
+    )
     .fetch_one(&state.db)
     .await?;
     Ok(Cargo {
-	id : record.id,
-	cargo_name : record.cargo_name,
-	cargo_number : record.cargo_number,
+        id: record.id,
+        cargo_name: record.cargo_name,
+        cargo_number: record.cargo_number,
     })
 }
 
 pub async fn delete_cargo_by_id(
     state: &AppState,
-    id : Uuid,
+    id: Uuid,
 ) -> Result<(), Box<dyn Error>> {
     query!(
         r#"
         DELETE
         FROM cargo WHERE id = $1"#,
-    id)
+        id
+    )
     .execute(&state.db)
     .await?;
     Ok(())
@@ -38,12 +40,12 @@ pub async fn delete_cargo_by_id(
 
 pub async fn save_cargo(
     state: &AppState,
-    cargo_bill : Cargo,
+    cargo_bill: Cargo,
 ) -> Result<(), Box<dyn Error>> {
     let Cargo {
-	id,
-	cargo_name,
-	cargo_number,
+        id,
+        cargo_name,
+        cargo_number,
     } = cargo_bill;
     query!(
         r#"
@@ -52,9 +54,9 @@ pub async fn save_cargo(
 	cargo_name,
 	cargo_number
         ) VALUES ($1,$2,$3)"#,
-	id,
-	cargo_name,
-	cargo_number,
+        id,
+        cargo_name,
+        cargo_number,
     )
     .execute(&state.db)
     .await?;
@@ -63,12 +65,12 @@ pub async fn save_cargo(
 
 pub async fn update_cargo(
     state: &AppState,
-    cargo_bill : Cargo,
+    cargo_bill: Cargo,
 ) -> Result<(), Box<dyn Error>> {
     let Cargo {
-	id,
-	cargo_name,
-	cargo_number,
+        id,
+        cargo_name,
+        cargo_number,
     } = cargo_bill;
     query!(
         r#"
@@ -76,9 +78,9 @@ pub async fn update_cargo(
 	    cargo_name = $2,
 	    cargo_number = $3
         WHERE id = $1"#,
-	id,
-	cargo_name,
-	cargo_number,
+        id,
+        cargo_name,
+        cargo_number,
     )
     .execute(&state.db)
     .await?;

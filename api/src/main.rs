@@ -5,25 +5,16 @@ use service::*;
 
 pub use models::backend_api::*;
 
-use config::{
-    get_config_postgres_url, get_configs_server,
-    set_debug_configs,
-};
+use config::{get_config_postgres_url, get_configs_server, set_debug_configs};
 use dotenv::dotenv;
 
-use actix_web::{
-    middleware::Logger, web::Data, App, HttpServer,
-};
+use actix_web::{middleware::Logger, web::Data, App, HttpServer};
 
-use sqlx::{
-    postgres::PgPoolOptions, Pool,
-    Postgres,
-};
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 pub struct AppState {
     pub db: Pool<Postgres>,
 }
-
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
