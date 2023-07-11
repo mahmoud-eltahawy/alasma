@@ -29,12 +29,14 @@ async fn main() -> std::io::Result<()> {
                 db: db_pool.clone(),
             }))
             .wrap(Logger::default())
-            .service(sells::scope())
+            .service(sell_bill::scope())
             .service(boughts::scope())
             .service(types::scope())
             .service(cargos::scope())
             .service(bill::scope())
             .service(sheet::scope())
+            .service(company::scope())
+            .service(client::scope())
     })
     .bind(get_configs_server())?
     .run()

@@ -2,6 +2,10 @@ html {
   direction: rtl;
 }
 
+* {
+  text-align: center;
+}
+
 :root {
   font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 16px;
@@ -80,6 +84,14 @@ ul {
   padding: 0;
 }
 
+ol {
+  list-style-type: none;
+  display: inline-block;
+  width: 30%;
+  margin: 0;
+  padding: 0;
+}
+
 li {
   margin-left: 10px;
   margin-right: 10px;
@@ -92,4 +104,31 @@ li {
 p {
   white-space: nowrap;
   overflow: hidden;
+}
+
+.centered-input {
+  display: flex;
+  font-size: 22px;
+  margin: 5px auto;
+  justify-content: center;
+  align-items: center;
+  width: 70%;
+  height: 40px;
+  border: 1px solid black;
+  background-color: #eee;
+}
+
+.centered-button {
+  display: inline-block;
+  margin: 5px auto;
+  justify-content: center;
+  align-items: center;
+  width: 30%;
+  height: 30px;
+  border: 1px solid black;
+  background-color: #eee;
+}
+
+button:hover{
+    border-color: blue;
 }

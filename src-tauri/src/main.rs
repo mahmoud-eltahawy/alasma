@@ -1,8 +1,10 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod api;
+
 use chrono::Local;
-use models::backend_api::{Client, Company, SellBill, Sheet, SheetType, Bill};
+use models::backend_api::*;
 use uuid::Uuid;
 
 #[tauri::command]
@@ -11,19 +13,35 @@ fn new_id() -> Uuid {
 }
 
 #[tauri::command]
-fn save_company(company : Company) -> anyhow::Result<(), String> {
+async fn save_company(
+    app_state: tauri::State<'_, AppState>,
+    company : Company
+) -> Result<(), String> {
     println!("Save Company -> {:#?}", company);
-    Ok(())
+    match api::save_company(&app_state, &company).await {
+	Ok(()) => Ok(()),
+	Err(err) => Err(err.to_string())
+    }
 }
 
 #[tauri::command]
-fn save_client(client : Client) -> anyhow::Result<(), String> {
+async fn save_client(
+    app_state: tauri::State<'_, AppState>,
+    client : Client
+) -> Result<(), String> {
     println!("Save Client -> {:#?}", client);
-    Ok(())
+    match api::save_client(&app_state, &client).await {
+	Ok(()) => Ok(()),
+	Err(err) => Err(err.to_string())
+    }
 }
 
 #[tauri::command]
-fn save_sell_sheet(id: Uuid, name: String) -> anyhow::Result<(), String> {
+async fn save_sell_sheet(
+    app_state: tauri::State<'_, AppState>,
+    id: Uuid,
+    name: String
+) -> Result<(), String> {
     let sheet = Sheet {
         id,
         the_name: name,
@@ -31,71 +49,93 @@ fn save_sell_sheet(id: Uuid, name: String) -> anyhow::Result<(), String> {
         the_type: SheetType::Sells,
     };
     println!("Save Sheet -> {:#?}", sheet);
-    Ok(())
+    match api::save_sheet(&app_state, &sheet).await {
+	Ok(()) => Ok(()),
+	Err(err) => Err(err.to_string())
+    }
 }
 
 #[tauri::command]
-fn save_bill(bill: Bill) -> anyhow::Result<(), String> {
+async fn save_bill(
+    app_state: tauri::State<'_, AppState>,
+    bill: Bill
+) -> Result<(), String> {
     println!("Save Bill -> {:#?}", bill);
-    Ok(())
+    match api::save_bill(&app_state, &bill).await {
+	Ok(()) => Ok(()),
+	Err(err) => Err(err.to_string())
+    }
 }
 
 #[tauri::command]
-fn save_sell_bill(sellbill: SellBill) -> anyhow::Result<(), String> {
+async fn save_sell_bill(
+    app_state: tauri::State<'_, AppState>,
+    sellbill: SellBill
+) -> Result<(), String> {
     println!("Save Sell Bill -> {:#?}", sellbill);
-    Ok(())
+    match api::save_sellbill(&app_state, &sellbill).await {
+	Ok(()) => Ok(()),
+	Err(err) => Err(err.to_string())
+    }
 }
 
 #[tauri::command]
-fn top_5_companies(name: String) -> anyhow::Result<Vec<Company>, String> {
+async fn top_5_companies(
+    app_state: tauri::State<'_, AppState>,
+    name: String
+) -> Result<Vec<Name>, String> {
     println!("Search Company -> {:#?}", name);
-    Ok(vec![
-        Company {
-            id: Uuid::new_v4(),
-            the_name: String::from("com 1"),
-        },
-        Company {
-            id: Uuid::new_v4(),
-            the_name: String::from("com 2"),
-        },
-        Company {
-            id: Uuid::new_v4(),
-            the_name: String::from("com 3"),
-        },
-    ])
+    match api::find_companies(&app_state, &name).await {
+	Ok(coms) => Ok(coms),
+	Err(err) => Err(err.to_string())
+    }
 }
 
 #[tauri::command]
-fn top_5_clients(name: String) -> anyhow::Result<Vec<Client>, String> {
+async fn top_5_clients(
+    app_state: tauri::State<'_, AppState>,
+    name: String
+) -> Result<Vec<Name>, String> {
     println!("Search Client -> {:#?}", name);
-    Ok(vec![
-        Client {
-            id: Uuid::new_v4(),
-            the_name: String::from("clt 1"),
-        },
-        Client {
-            id: Uuid::new_v4(),
-            the_name: String::from("clt 2"),
-        },
-        Client {
-            id: Uuid::new_v4(),
-            the_name: String::from("clt 3"),
-        },
-    ])
+    match api::find_clients(&app_state, &name).await {
+	Ok(cls) => Ok(cls),
+	Err(err) => Err(err.to_string())
+    }
 }
+
+use dotenv::dotenv;
+use std::env;
 
 fn main() {
+    dotenv().ok();
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             new_id,
+	    save_company,
+	    save_client,
             save_sell_sheet,
             save_bill,
             save_sell_bill,
             top_5_companies,
             top_5_clients,
-	    save_company,
-	    save_client,
         ])
+	.manage(AppState::new())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+pub struct AppState{
+    pub origin : String,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        let host = env::var("ERA_HOST").expect("invalid host key");
+        let port = env::var("ERA_PORT").expect("invalid port key");
+
+        AppState {
+            origin: format!("http://{host}:{port}"),
+        }
+    }
 }

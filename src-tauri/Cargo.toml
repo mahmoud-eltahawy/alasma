@@ -20,6 +20,8 @@ models = { workspace = true }
 anyhow = { workspace = true }
 uuid = { workspace = true,features = ["serde", "v4"] }
 chrono = {workspace = true , features = ["serde"] }
+dotenv = { workspace = true }
+reqwest = { version = "^0.11", features = ["json"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

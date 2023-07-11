@@ -236,7 +236,9 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "dotenv",
  "models",
+ "reqwest",
  "serde",
  "serde_json",
  "tauri",

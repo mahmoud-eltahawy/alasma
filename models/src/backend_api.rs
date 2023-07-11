@@ -22,7 +22,7 @@ pub struct Sheet {
 pub struct Bill {
     pub id: Uuid,
     pub bill_number: i64,
-    pub the_date: Option<NaiveDate>,
+    pub the_date: NaiveDate,
     pub is_sell: bool,
 }
 
@@ -49,6 +49,12 @@ pub struct BuyBill {
     pub bill_id: Option<Uuid>,
     pub quantity: Option<i64>,
     pub one_cost: Option<BigDecimal>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Name {
+    pub id: Uuid,
+    pub the_name: String,
 }
 
 #[derive(Serialize, Deserialize, Clone,Debug)]

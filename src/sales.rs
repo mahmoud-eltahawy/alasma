@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bigdecimal::{BigDecimal, FromPrimitive};
 use chrono::Local;
 use leptos::*;
@@ -5,7 +7,7 @@ use leptos_router::*;
 
 use tauri_sys::tauri::invoke;
 
-use models::backend_api::{Bill, Client, Company, SellBill};
+use models::backend_api::{Bill, Client, Company, SellBill,Name};
 use serde::{Deserialize, Serialize};
 
 use crate::shared::{alert, new_id};
@@ -19,13 +21,6 @@ struct NaiveSellBill {
     client: Option<Client>,
     value: f64,
     discount: f64,
-}
-
-#[derive(Clone)]
-enum Complete {
-    Company,
-    Client,
-    None,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -54,13 +49,135 @@ struct ClientArgs {
     client : Client,
 }
 
+fn save_sheet_to_db(
+    sheet_id : ReadSignal<Uuid>,
+    sheet_name : ReadSignal<String>,
+    list : ReadSignal<Vec<NaiveSellBill>>,
+    set_list : WriteSignal<Vec<NaiveSellBill>>,
+) {
+    let mut saved_companies = HashMap::<String,Uuid>::new();
+    let mut saved_clients = HashMap::<String,Uuid>::new();
+
+    let sheet_id = sheet_id.get();
+    let sheet_name = sheet_name.get();
+    let bill_list = list.get();
+    if sheet_name.is_empty() || sheet_id.is_nil() || bill_list.is_empty() {
+	return;
+    }
+    spawn_local(async move {
+	let succ = match invoke::<SheetArgs, ()>(
+	    "save_sell_sheet",
+	    &SheetArgs {
+		id: sheet_id,
+		name: sheet_name,
+	    },
+	)
+	.await
+	{
+	    Ok(()) => None,
+	    Err(err) => Some(err),
+	};
+
+	if let Some(err) = succ {
+		alert(format!("Error 3 : {err:?}").as_str());
+		return;
+	};
+
+	for x in bill_list.into_iter() {
+	    let succ = match invoke::<BillArgs, ()>(
+		"save_bill",
+		&BillArgs {
+		    bill: x.bill.clone(),
+		},
+	    )
+	    .await
+	    {
+		Ok(()) => None,
+		Err(err) => Some(err),
+	    };
+
+	    if let Some(err) = succ {
+		alert(format!("Error 1 : {err:?}").as_str());
+		return;
+	    };
+
+
+	    let company_id = if x.company.id.is_nil(){
+		if let Some(id) = saved_companies.get(&x.company.the_name) {
+		    *id
+		} else {
+		    let company = Company{
+			id : new_id().await,
+			the_name : x.company.the_name,
+		    };
+		    invoke::<CompanyArgs, ()>(
+			"save_company",
+			&CompanyArgs {company: company.clone()},
+		    )
+		    .await
+		    .unwrap_or_else(|_| alert(format!("حفظ {} فشل 5",company.the_name).as_str()));
+		    saved_companies.insert(company.the_name, company.id);
+		    company.id
+		}
+	    } else {
+		x.company.id
+	    };
+
+	    let client_id = match &x.client {
+		Some(client) => {
+		    if client.clone().id.is_nil(){
+			if let Some(id) = saved_clients.get(&client.the_name) {
+			    Some(*id)
+			} else {
+			    let client = Client{
+				id : new_id().await,
+				the_name : client.the_name.clone(),
+			    };
+			    invoke::<ClientArgs, ()>(
+				"save_client",
+				&ClientArgs {client : client.clone()},
+			    )
+			    .await
+			    .unwrap_or_else(|_| alert(format!("حفظ {} فشل 4",client.the_name).as_str()));
+			    saved_clients.insert(client.the_name, client.id);
+			    Some(client.id)
+			}
+		    } else {
+			x.client.map(|x| x.id)
+		    }
+		},
+		None => None
+	    };
+
+	    let sellbill = SellBill {
+		bill_id: x.bill.id,
+		tax_number: Some(x.tax_number as i64),
+		company_id: Some(company_id),
+		client_id,
+		sheet_id,
+		total_cost: BigDecimal::from_f64(x.value),
+		discount: BigDecimal::from_f64(x.discount).unwrap_or_default(),
+	    };
+
+	    match invoke::<SellBillArgs, ()>(
+		"save_sell_bill",
+		&SellBillArgs {sellbill},
+	    )
+	    .await
+	    {
+		Ok(()) => (),
+		Err(err) => alert(format!("Error 2 : {err:?}").as_str()),
+	    };
+	}
+    });
+    set_list.set(vec![]);
+}
+
 #[component]
 pub fn Sales(cx: Scope) -> impl IntoView {
     let (sheet_name, set_sheet_name) = create_signal(cx, String::from(""));
     let (sheet_id, set_sheet_id) = create_signal(cx, Uuid::nil());
     let (list, set_list) = create_signal(cx, Vec::<NaiveSellBill>::new());
-
-    let (complete, set_complete) = create_signal(cx, Complete::None);
 
     let (company_id, set_company_id) = create_signal(cx, None::<Uuid>);
     let (client_id, set_client_id) = create_signal(cx, None::<Uuid>);
@@ -71,243 +188,191 @@ pub fn Sales(cx: Scope) -> impl IntoView {
         set_sheet_id.set(new_id().await);
     });
 
-    let save_sheet = move |_| {
-        spawn_local(async move {
-            let succ = match invoke::<SheetArgs, ()>(
-                "save_sell_sheet",
-                &SheetArgs {
-                    id: sheet_id.get_untracked(),
-                    name: sheet_name.get_untracked(),
-                },
-            )
-            .await
-            {
-                Ok(()) => None,
-                Err(err) => Some(err),
-            };
+    view! { cx,
+        <div>
+            <A class="button" href="/">
+                "الرئيسية"
+            </A>
+            <br/>
+            <input
+                type="string"
+                class="centered-input"
+                placeholder="اسم الشيت"
+                value=move || sheet_name.get()
+                on:input=move |ev| set_sheet_name.set(event_target_value(&ev))
+            />
+            <br/>
+            <table class="table-excel">
+                <thead>
+                    <tr>
+                        <th>"رقم الفاتورة"</th>
+                        <th>"التاريخ"</th>
+                        <th>"رقم التسجيل الضريبي"</th>
+                        <th>"اسم العميل"</th>
+                        <th>"تبع"</th>
+                        <th>"القيمة"</th>
+                        <th>"ض.ق.م"</th>
+                        <th>"الخصم"</th>
+                        <th>"الاجمالي"</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <For
+                        each=move || list.get()
+                        key=|b| b.bill.bill_number
+                        view=move |cx, b| {
+                            view! { cx, <ShowRow element=b set_list=set_list/> }
+                        }
+                    />
+                    <InputRow
+                        set_list=set_list
+                        list=list
+                        company_name=company_name
+                        set_company_name=set_company_name
+                        client_name=client_name
+                        set_client_name=set_client_name
+                        company_id=company_id
+                        set_company_id=set_company_id
+                        client_id=client_id
+                        set_client_id=set_client_id
+                    />
+                </tbody>
+            </table>
+            <br/>
+            <CompleteSection
+                client_name=client_name
+                set_client_name=set_client_name
+                set_client_id=set_client_id
+                company_name=company_name
+                set_company_name=set_company_name
+                set_company_id=set_company_id
+                sheet_id=sheet_id
+                sheet_name=sheet_name
+                list=list
+                set_list=set_list
+            />
+            <Outlet/>
+        </div>
+    }
+}
 
-	    if let Some(err) = succ {
-                 alert(err.to_string().as_str());
-		 return;
-	    };
-
-            for x in list.get().into_iter() {
-                let succ = match invoke::<BillArgs, ()>(
-                    "save_bill",
-                    &BillArgs {
-                        bill: x.bill.clone(),
-                    },
-                )
-                .await
-                {
-                    Ok(()) => None,
-                    Err(err) => Some(err),
-                };
-
-		if let Some(err) = succ {
-                    alert(err.to_string().as_str());
-		    return;
-		};
-
-		let company_id = if x.company.id.is_nil() {
-		    let id = new_id().await;
-		    let company = Company{
-			id,
-			the_name : x.company.the_name,
-		    };
-		    invoke::<CompanyArgs, ()>(
-			"save_company",
-			&CompanyArgs {company},
-		    )
-		    .await.unwrap();
-		    Some(id)
-		} else {
-		    Some(x.company.id)
-		};
-
-		let client_id = if x.client.clone().is_some_and(|x| x.id.is_nil()) {
-		    let id = new_id().await;
-		    let client = Client{
-			id,
-			the_name : x.client.unwrap().the_name,
-		    };
-		    invoke::<ClientArgs, ()>(
-			"save_client",
-			&ClientArgs {client},
-		    )
-		    .await.unwrap();
-		    Some(id)
-		} else if x.client.clone().is_some_and(|x| !x.id.is_nil()) {
-		    x.client.clone().map(|x| x.id)
-		} else {
-		    None
-		};
-
-	        let sellbill = SellBill {
-		    bill_id: x.bill.id,
-		    tax_number: Some(x.tax_number as i64),
-		    company_id,
-		    client_id,
-		    sheet_id: sheet_id.get(),
-		    total_cost: BigDecimal::from_f64(x.value),
-		    discount: BigDecimal::from_f64(x.discount).unwrap_or_default(),
-		};
-
-                match invoke::<SellBillArgs, ()>(
-                    "save_sell_bill",
-                    &SellBillArgs {sellbill},
-                )
-                .await
-                {
-                    Ok(()) => alert("تم حفظ الشيت بنجاح"),
-                    Err(err) => alert(err.to_string().as_str()),
-                };
-            }
-        });
+#[component]
+fn CompleteSection(
+    cx: Scope,
+    client_name: ReadSignal<String>,
+    set_client_name: WriteSignal<String>,
+    set_client_id: WriteSignal<Option<Uuid>>,
+    company_name: ReadSignal<String>,
+    set_company_name: WriteSignal<String>,
+    set_company_id: WriteSignal<Option<Uuid>>,
+    sheet_id : ReadSignal<Uuid>,
+    sheet_name : ReadSignal<String>,
+    list : ReadSignal<Vec<NaiveSellBill>>,
+    set_list : WriteSignal<Vec<NaiveSellBill>>,
+) -> impl IntoView {
+    let save_sheet =move |_| {
+	save_sheet_to_db(
+	    sheet_id,
+	    sheet_name,
+	    list,
+	    set_list,
+	);
     };
 
-    view! {cx,
-       <div>
-     <A class="button" href="/">"الرئيسية"</A><br/>
-     <input
-       type="string"
-       style="width : 100%;"
-       placeholder="اسم الشيت"
-       value=move|| sheet_name.get()
-       on:input=move|ev| set_sheet_name.set(event_target_value(&ev))
-      /><br/>
-      <table class="table-excel">
-        <thead>
-          <tr>
-        <th>"رقم الفاتورة"</th>
-        <th>"التاريخ"</th>
-        <th>"رقم التسجيل الضريبي"</th>
-        <th>"اسم العميل"</th>
-        <th>"تبع"</th>
-        <th>"القيمة"</th>
-        <th>"ض.ق.م"</th>
-        <th>"الخصم"</th>
-        <th>"الاجمالي"</th>
-          </tr>
-        </thead>
-        <tbody>
-          <For
-            each=move|| list.get()
-            key=|b| b.bill.bill_number
-        view=move |cx,b| {
-            view! {cx,
-                <ShowRow element=b set_list=set_list/>
-            }
-        }
-          />
-     <InputRow
-       set_list=set_list
-       list=list
-       set_complete=set_complete
-       company_name=company_name
-       set_company_name=set_company_name
-       client_name=client_name
-       set_client_name=set_client_name
-       company_id=company_id
-       set_company_id=set_company_id
-       client_id=client_id
-       set_client_id=set_client_id
-     />
-      </tbody>
-      </table><br/>
-      <ChoicesLine
-       complete=complete
-       company_name=company_name
-       client_name=client_name
-       set_company_name=set_company_name
-       set_client_name=set_client_name
-       set_company_id=set_company_id
-       set_client_id=set_client_id
-      />
-      <button
-        on:click=save_sheet
-        style="width : 100%;"
-      >"حفظ الشيت"</button>
-      <Outlet/>
-    </div>
+    view! { cx,
+        <>
+            <button on:click=save_sheet class="centered-button">
+                "حفظ الشيت"
+            </button>
+            <section>
+                <Complete
+                    name=company_name
+                    set_name=set_company_name
+                    set_id=set_company_id
+                    search_topic=String::from("top_5_companies")
+                />
+                <Complete
+                    name=client_name
+                    set_name=set_client_name
+                    set_id=set_client_id
+                    search_topic=String::from("top_5_clients")
+                />
+            </section>
+        </>
     }
 }
 
 #[derive(Serialize, Deserialize)]
-struct Name {
+struct NameArg {
     name: String,
 }
 
+fn search(
+    name : String,
+    topic : String,
+    set_result : WriteSignal<Vec<Name>>,
+){
+    spawn_local(async move {
+	match invoke::<_, Vec<Name>>(
+	    &topic,
+	    &NameArg { name },
+	)
+	.await
+	{
+	    Ok(v) => set_result.set(v),
+	    Err(err) => log!("{:#?}",err),
+	};
+    });
+}
+
 #[component]
-fn ChoicesLine(
+fn Complete(
     cx: Scope,
-    complete: ReadSignal<Complete>,
-    client_name: ReadSignal<String>,
-    company_name: ReadSignal<String>,
-    set_client_name: WriteSignal<String>,
-    set_company_name: WriteSignal<String>,
-    set_client_id: WriteSignal<Option<Uuid>>,
-    set_company_id: WriteSignal<Option<Uuid>>,
+    name: ReadSignal<String>,
+    set_name: WriteSignal<String>,
+    set_id: WriteSignal<Option<Uuid>>,
+    search_topic : String,
 ) -> impl IntoView {
     let (result, set_result) = create_signal(
         cx,
-        vec![Company {
+        vec![Name {
             id: Uuid::nil(),
             the_name: String::from("صباح الخير او مساء الخير علي حسب التوقيت"),
         }],
     );
 
     create_effect(cx, move |_| {
-        let cond = complete.get();
-        let name = match cond {
-            Complete::Company => company_name.get(),
-            Complete::Client => client_name.get(),
-            Complete::None => String::from(""),
-        };
-
-        spawn_local(async move {
-            match cond {
-                Complete::Company => set_result.set(
-                    invoke::<_, Vec<Company>>(
-                        "top_5_companies",
-                        &Name { name },
-                    )
-                    .await
-                    .unwrap(),
-                ),
-                Complete::Client => set_result.set(
-                    invoke::<_, Vec<Company>>("top_5_clients", &Name { name })
-                        .await
-                        .unwrap(),
-                ),
-                Complete::None => (),
-            };
-        });
+        let name =  name.get();
+	if name.is_empty() {
+	    return;
+	}
+	search(
+	    name,
+	    search_topic.clone(),
+	    set_result,
+	);
     });
 
-    view! {cx,
-    <ul>
-    <For
-        each= move|| result.get()
-        key=|x| x.id
-	view=move |cx, x| {
-	    let name = x.the_name.clone();
-	    view! { cx,
-		<li on:click=move |_| match complete.get() {
-			Complete::Company => {
-			    set_company_id.set(Some(x.id));
-			    set_company_name.set(name.clone());
-			},
-			Complete::Client => {
-			    set_client_id.set(Some(x.id));
-			    set_client_name.set(name.clone());
-			},
-			Complete::None => (),
-		    }><p>{x.the_name}</p></li>
-	    }
-        }
-    />
-      </ul>
+    view! { cx,
+        <ol>
+            <For
+                each=move || result.get()
+                key=|x| x.id
+                view=move |cx, x| {
+                    let name = x.the_name.clone();
+                    view! { cx,
+                        <li on:click=move |_| {
+                            if !x.id.is_nil() {
+                                set_id.set(Some(x.id));
+                                set_name.set(name.clone());
+                            }
+                        }>
+                            <p>{x.the_name}</p>
+                        </li>
+                    }
+                }
+            />
+        </ol>
     }
 }
 
@@ -327,28 +392,26 @@ fn ShowRow(
         })
     };
 
-    view! {cx,
-    <tr>
-      <td
-       on:mouseleave=move |_| set_hover.set(false)
-       >{move || if hover.get() {
-           view! {cx,<button on:click=remove_from_list>"حذف"</button>}
-       } else {
-           view! {cx,<button
-                on:click=move |_| set_hover.set(true)
-              >{element.bill.bill_number}</button>
-           }
-       }
-       }</td>
-      <td>{element.bill.the_date.map(|x| x.to_string())}</td>
-      <td>{element.tax_number}</td>
-      <td>{element.company.the_name}</td>
-      <td>{element.client.map(|x| x.the_name)}</td>
-      <td>{element.value}</td>
-      <td>{format!("{:.2}",tax)}</td>
-      <td>{element.discount}</td>
-      <td>{total}</td>
-    </tr>
+    view! { cx,
+        <tr>
+            <td on:mouseleave=move |_| set_hover.set(false)>
+                {move || {
+                    if hover.get() {
+                        view! { cx, <button on:click=remove_from_list>"حذف"</button> }
+                    } else {
+                        view! { cx, <button on:click=move |_| set_hover.set(true)>{element.bill.bill_number}</button> }
+                    }
+                }}
+            </td>
+            <td>{element.bill.the_date.to_string()}</td>
+            <td>{element.tax_number}</td>
+            <td>{element.company.the_name}</td>
+            <td>{element.client.map(|x| x.the_name)}</td>
+            <td>{element.value}</td>
+            <td>{format!("{:.2}", tax)}</td>
+            <td>{element.discount}</td>
+            <td>{total}</td>
+        </tr>
     }
 }
 
@@ -365,7 +428,6 @@ fn InputRow(
     set_client_id: WriteSignal<Option<Uuid>>,
     company_id: ReadSignal<Option<Uuid>>,
     set_company_id: WriteSignal<Option<Uuid>>,
-    set_complete: WriteSignal<Complete>,
 ) -> impl IntoView {
     let today = Local::now().date_naive();
 
@@ -391,114 +453,123 @@ fn InputRow(
         if !appendable() {
             return;
         }
+	let company = match company_id.get() {
+	    None => Company {
+		id: Uuid::nil(),
+		the_name: company_name.get().trim().to_string(),
+	    },
+	    Some(id) => Company {
+		id,
+		the_name: company_name.get(),
+	    },
+	};
+
+	let client = match client_id.get() {
+	    None => Some(Client {
+		id: Uuid::nil(),
+		the_name: client_name.get().trim().to_string(),
+	    }),
+	    Some(id) => Some(Client {
+		id,
+		the_name: client_name.get(),
+	    }),
+	};
+	let value = value.get();
+	let discount = discount.get();
+	let tax_number = tax_number.get();
+	let bill_number = bill_number.get().try_into().unwrap();
+	let the_date = bill_date.get();
+	let is_sell = true;
+
         spawn_local(async move {
             let x = NaiveSellBill {
                 bill: Bill {
                     id: new_id().await,
-                    bill_number: bill_number.get().try_into().unwrap(),
-                    the_date: Some(bill_date.get()),
-                    is_sell: true,
+                    bill_number,
+                    the_date,
+                    is_sell,
                 },
-                tax_number: tax_number.get(),
-                company: match company_id.get() {
-                    None => Company {
-                        id: Uuid::nil(),
-                        the_name: company_name.get(),
-                    },
-                    Some(id) => Company {
-                        id,
-                        the_name: company_name.get(),
-                    },
-                },
-                client: match client_id.get() {
-                    None => Some(Client {
-                        id: Uuid::nil(),
-                        the_name: client_name.get(),
-                    }),
-                    Some(id) => Some(Client {
-                        id,
-                        the_name: client_name.get(),
-                    }),
-                },
-                value: value.get(),
-                discount: discount.get(),
+                tax_number,
+                company,
+                client,
+                value,
+                discount,
             };
             set_list.update(|xs| xs.push(x))
         });
     };
 
-    view! {cx,
-       <>
-       <tr>
-     <td><input
-       type="number"
-       value=move|| bill_number.get()
-       on:input=move|ev| set_bill_number.set(event_target_value(&ev).parse().unwrap())
-     /></td>
-     <td><input
-       type="date"
-       value=move|| bill_date.get().to_string()
-       on:input=move|ev| set_bill_date.set(event_target_value(&ev).parse().unwrap())
-     /></td>
-     <td><input
-       type="number"
-       value=move|| tax_number.get()
-       on:input=move|ev| set_tax_number.set(event_target_value(&ev).parse().unwrap())
-     /></td>
-     <CompletableTd
-	   name=company_name
-	   set_name=set_company_name
-	   set_id=set_company_id
-	   on_input_do=move || set_complete.set(Complete::Company)/>
-     <CompletableTd
-	   name=client_name
-	   set_name=set_client_name
-	   set_id=set_client_id
-	   on_input_do=move || set_complete.set(Complete::Client)/>
-     <td><input
-       type="number"
-       value=move|| value.get()
-       on:input=move|ev| set_value.set(event_target_value(&ev).parse().unwrap())
-     /></td>
-     <td>{move|| format!("{:.2}",tax())}</td>
-     <td><input
-       type="number"
-       value=move || discount.get()
-       on:input=move|ev| set_discount.set(event_target_value(&ev).parse().unwrap())
-     /></td>
-         <td>{move|| format!("{:.2}",total())}</td>
-       </tr>
-    <tr class="spanA">
-      <td>
-         <button on:click=on_click>"اضافة"</button>
-      </td>
-    </tr>
-    </>
-     }
+    view! { cx,
+        <>
+            <tr>
+                <td>
+                    <input
+                        type="number"
+                        value=move || bill_number.get()
+                        on:input=move |ev| set_bill_number.set(event_target_value(&ev).parse().unwrap_or_default())
+                    />
+                </td>
+                <td>
+                    <input
+                        type="date"
+                        value=move || bill_date.get().to_string()
+                        on:input=move |ev| set_bill_date.set(event_target_value(&ev).parse().unwrap_or_default())
+                    />
+                </td>
+                <td>
+                    <input
+                        type="number"
+                        value=move || tax_number.get()
+                        on:input=move |ev| set_tax_number.set(event_target_value(&ev).parse().unwrap_or_default())
+                    />
+                </td>
+                <CompletableTd name=company_name set_name=set_company_name set_id=set_company_id/>
+                <CompletableTd name=client_name set_name=set_client_name set_id=set_client_id/>
+                <td>
+                    <input
+                        type="number"
+                        value=move || value.get()
+                        on:input=move |ev| set_value.set(event_target_value(&ev).parse().unwrap_or_default())
+                    />
+                </td>
+                <td>{move || format!("{:.2}", tax())}</td>
+                <td>
+                    <input
+                        type="number"
+                        value=move || discount.get()
+                        on:input=move |ev| set_discount.set(event_target_value(&ev).parse().unwrap_or_default())
+                    />
+                </td>
+                <td>{move || format!("{:.2}", total())}</td>
+            </tr>
+            <tr class="spanA">
+                <td>
+                    <button on:click=on_click>"اضافة"</button>
+                </td>
+            </tr>
+        </>
+    }
 }
 
 #[component]
-fn CompletableTd<U>(
+fn CompletableTd(
     cx: Scope,
     name : ReadSignal<String>,
     set_name : WriteSignal<String>,
     set_id : WriteSignal<Option<Uuid>>,
-    on_input_do : U,
-) -> impl IntoView
-where
-    U : Fn() -> () + 'static,
-{
+) -> impl IntoView {
     
-    view! {cx,
-     <td><input
-       type="string"
-       value=move|| name.get()
-       on:input=move|ev| {
-	 on_input_do();
-         set_name.set(event_target_value(&ev));
-	 set_id.set(None);
-       }/>
-       <p>{move|| name.get()}</p>
-     </td>
+    view! { cx,
+        <td>
+            <input
+                type="string"
+                value=move || name.get()
+                on:input=move |ev| {
+                    set_name.set(event_target_value(&ev));
+                    set_id.set(None);
+                }
+            />
+            <p>{move || name.get()}</p>
+        </td>
     }
 }
