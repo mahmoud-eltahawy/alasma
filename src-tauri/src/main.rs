@@ -3,6 +3,10 @@
 
 mod api;
 
+use api::{
+    find_bill_by_id, find_client_by_id, find_company_by_id,
+    find_sheet_sellbills,
+};
 use chrono::Local;
 use models::backend_api::*;
 use uuid::Uuid;
@@ -15,24 +19,24 @@ fn new_id() -> Uuid {
 #[tauri::command]
 async fn save_company(
     app_state: tauri::State<'_, AppState>,
-    company : Company
+    company: Company,
 ) -> Result<(), String> {
     println!("Save Company -> {:#?}", company);
     match api::save_company(&app_state, &company).await {
-	Ok(()) => Ok(()),
-	Err(err) => Err(err.to_string())
+        Ok(()) => Ok(()),
+        Err(err) => Err(err.to_string()),
     }
 }
 
 #[tauri::command]
 async fn save_client(
     app_state: tauri::State<'_, AppState>,
-    client : Client
+    client: Client,
 ) -> Result<(), String> {
     println!("Save Client -> {:#?}", client);
     match api::save_client(&app_state, &client).await {
-	Ok(()) => Ok(()),
-	Err(err) => Err(err.to_string())
+        Ok(()) => Ok(()),
+        Err(err) => Err(err.to_string()),
     }
 }
 
@@ -40,7 +44,7 @@ async fn save_client(
 async fn save_sell_sheet(
     app_state: tauri::State<'_, AppState>,
     id: Uuid,
-    name: String
+    name: String,
 ) -> Result<(), String> {
     let sheet = Sheet {
         id,
@@ -50,56 +54,111 @@ async fn save_sell_sheet(
     };
     println!("Save Sheet -> {:#?}", sheet);
     match api::save_sheet(&app_state, &sheet).await {
-	Ok(()) => Ok(()),
-	Err(err) => Err(err.to_string())
+        Ok(()) => Ok(()),
+        Err(err) => Err(err.to_string()),
     }
 }
 
 #[tauri::command]
 async fn save_bill(
     app_state: tauri::State<'_, AppState>,
-    bill: Bill
+    bill: Bill,
 ) -> Result<(), String> {
     println!("Save Bill -> {:#?}", bill);
     match api::save_bill(&app_state, &bill).await {
-	Ok(()) => Ok(()),
-	Err(err) => Err(err.to_string())
+        Ok(()) => Ok(()),
+        Err(err) => Err(err.to_string()),
     }
 }
 
 #[tauri::command]
 async fn save_sell_bill(
     app_state: tauri::State<'_, AppState>,
-    sellbill: SellBill
+    sellbill: SellBill,
 ) -> Result<(), String> {
     println!("Save Sell Bill -> {:#?}", sellbill);
     match api::save_sellbill(&app_state, &sellbill).await {
-	Ok(()) => Ok(()),
-	Err(err) => Err(err.to_string())
+        Ok(()) => Ok(()),
+        Err(err) => Err(err.to_string()),
     }
 }
 
 #[tauri::command]
 async fn top_5_companies(
     app_state: tauri::State<'_, AppState>,
-    name: String
+    name: String,
 ) -> Result<Vec<Name>, String> {
     println!("Search Company -> {:#?}", name);
     match api::find_companies(&app_state, &name).await {
-	Ok(coms) => Ok(coms),
-	Err(err) => Err(err.to_string())
+        Ok(coms) => Ok(coms),
+        Err(err) => Err(err.to_string()),
     }
 }
 
 #[tauri::command]
 async fn top_5_clients(
     app_state: tauri::State<'_, AppState>,
-    name: String
+    name: String,
 ) -> Result<Vec<Name>, String> {
     println!("Search Client -> {:#?}", name);
     match api::find_clients(&app_state, &name).await {
-	Ok(cls) => Ok(cls),
-	Err(err) => Err(err.to_string())
+        Ok(cls) => Ok(cls),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn top_5_sheets(
+    app_state: tauri::State<'_, AppState>,
+    params: SheetShearchParams,
+) -> Result<Vec<Sheet>, String> {
+    match api::search_sheets(&app_state, &params).await {
+        Ok(sheets) => Ok(sheets),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn get_sheet_sellbills(
+    app_state: tauri::State<'_, AppState>,
+    id: Uuid,
+) -> Result<Vec<SellBill>, String> {
+    match find_sheet_sellbills(&app_state, id).await {
+        Ok(bills) => Ok(bills),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn get_bill(
+    app_state: tauri::State<'_, AppState>,
+    id: Uuid,
+) -> Result<Bill, String> {
+    match find_bill_by_id(&app_state, id).await {
+        Ok(bills) => Ok(bills),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn get_company(
+    app_state: tauri::State<'_, AppState>,
+    id: Uuid,
+) -> Result<Company, String> {
+    match find_company_by_id(&app_state, id).await {
+        Ok(com) => Ok(com),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn get_client(
+    app_state: tauri::State<'_, AppState>,
+    id: Uuid,
+) -> Result<Client, String> {
+    match find_client_by_id(&app_state, id).await {
+        Ok(clt) => Ok(clt),
+        Err(err) => Err(err.to_string()),
     }
 }
 
@@ -112,21 +171,26 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             new_id,
-	    save_company,
-	    save_client,
+            save_company,
+            save_client,
             save_sell_sheet,
             save_bill,
+            get_bill,
+            get_company,
+            get_client,
             save_sell_bill,
             top_5_companies,
             top_5_clients,
+            top_5_sheets,
+            get_sheet_sellbills,
         ])
-	.manage(AppState::new())
+        .manage(AppState::new())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
-pub struct AppState{
-    pub origin : String,
+pub struct AppState {
+    pub origin: String,
 }
 
 impl AppState {

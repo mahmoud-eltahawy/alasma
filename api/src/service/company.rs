@@ -50,7 +50,10 @@ async fn delete_by_id(
 }
 
 #[post("/")]
-async fn save(state: Data<AppState>, dep: web::Json<Company>) -> impl Responder {
+async fn save(
+    state: Data<AppState>,
+    dep: web::Json<Company>,
+) -> impl Responder {
     let dep = dep.into_inner();
     match save_company(&state, dep).await {
         Ok(_) => HttpResponse::Ok(),

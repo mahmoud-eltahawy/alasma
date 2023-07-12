@@ -9,18 +9,18 @@ use uuid::Uuid;
 
 pub fn scope() -> Scope {
     web::scope("/sellbill")
-        .service(get_by_id)
+        .service(get_by_sheet_id)
         .service(save)
         .service(update)
         .service(delete_by_id)
 }
 
-#[get("/{id}")]
-async fn get_by_id(
+#[get("/{id}/sheet")]
+async fn get_by_sheet_id(
     state: Data<AppState>,
     id: web::Path<Uuid>,
 ) -> impl Responder {
-    match fetch_sell_bill_by_id(&state, id.into_inner()).await {
+    match fetch_sell_bills_by_sheet_id(&state, id.into_inner()).await {
         Ok(dep) => HttpResponse::Ok().json(dep),
         Err(_) => HttpResponse::InternalServerError().into(),
     }
@@ -47,9 +47,9 @@ async fn save(
     match save_sell_bill(&state, dep).await {
         Ok(_) => HttpResponse::Ok(),
         Err(err) => {
-	    println!("{:?}",err);
-	  HttpResponse::InternalServerError()  
-	} 
+            println!("{:?}", err);
+            HttpResponse::InternalServerError()
+        }
     }
 }
 

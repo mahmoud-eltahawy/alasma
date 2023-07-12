@@ -4,11 +4,13 @@ use actix_web::{
     web::{self, Data},
     HttpResponse, Responder, Scope,
 };
+use models::backend_api::SheetShearchParams;
 use uuid::Uuid;
 
 pub fn scope() -> Scope {
     web::scope("/sheet")
         .service(get_by_id)
+        .service(search)
         .service(save)
         .service(update)
         .service(delete_by_id)
@@ -20,6 +22,24 @@ async fn get_by_id(
     id: web::Path<Uuid>,
 ) -> impl Responder {
     match fetch_sheet_by_id(&state, id.into_inner()).await {
+        Ok(dep) => HttpResponse::Ok().json(dep),
+        Err(_) => HttpResponse::InternalServerError().into(),
+    }
+}
+
+#[post("/search")]
+async fn search(
+    state: Data<AppState>,
+    json: web::Json<SheetShearchParams>,
+) -> impl Responder {
+    let SheetShearchParams {
+        offset,
+        begin,
+        end,
+        name,
+        sheet_type,
+    } = json.into_inner();
+    match search_sheets(&state, offset, name, begin, end, sheet_type).await {
         Ok(dep) => HttpResponse::Ok().json(dep),
         Err(_) => HttpResponse::InternalServerError().into(),
     }

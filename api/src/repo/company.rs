@@ -1,8 +1,8 @@
-use sqlx::{query,query_as};
+use sqlx::{query, query_as};
 use std::error::Error;
 use uuid::Uuid;
 
-use crate::{AppState, Company,Name};
+use crate::{AppState, Company, Name};
 
 pub async fn fetch_company_by_id(
     state: &AppState,
@@ -24,13 +24,14 @@ pub async fn fetch_company_by_id(
 
 pub async fn search_company_by_name(
     state: &AppState,
-    name : String,
+    name: String,
 ) -> Result<Vec<Name>, Box<dyn Error>> {
     let name = format!("%{name}%");
-    let coms = query_as!(Name,
+    let coms = query_as!(
+        Name,
         r#"
         select *
-        from company WHERE the_name LIKE $1"#,
+        from company WHERE the_name LIKE $1 LIMIT 5"#,
         name
     )
     .fetch_all(&state.db)
@@ -57,10 +58,7 @@ pub async fn save_company(
     state: &AppState,
     company: Company,
 ) -> Result<(), Box<dyn Error>> {
-    let Company {
-        id,
-        the_name,
-    } = company;
+    let Company { id, the_name } = company;
     query!(
         r#"
         INSERT INTO company(
@@ -79,10 +77,7 @@ pub async fn update_company(
     state: &AppState,
     company: Company,
 ) -> Result<(), Box<dyn Error>> {
-    let Company {
-        id,
-        the_name,
-    } = company;
+    let Company { id, the_name } = company;
     query!(
         r#"
         UPDATE company SET

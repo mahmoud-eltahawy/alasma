@@ -3,14 +3,14 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum SheetType {
     Sells,
     Boughts,
     Types,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Sheet {
     pub id: Uuid,
     pub the_name: String,
@@ -18,7 +18,16 @@ pub struct Sheet {
     pub the_type: SheetType,
 }
 
-#[derive(Serialize, Deserialize, Clone,Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct SheetShearchParams {
+    pub offset: i64,
+    pub begin: Option<NaiveDate>,
+    pub end: Option<NaiveDate>,
+    pub name: Option<String>,
+    pub sheet_type: SheetType,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Bill {
     pub id: Uuid,
     pub bill_number: i64,
@@ -51,19 +60,19 @@ pub struct BuyBill {
     pub one_cost: Option<BigDecimal>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Name {
     pub id: Uuid,
     pub the_name: String,
 }
 
-#[derive(Serialize, Deserialize, Clone,Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Client {
     pub id: Uuid,
     pub the_name: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct Company {
     pub id: Uuid,
     pub the_name: String,

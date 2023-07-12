@@ -132,3 +132,80 @@ p {
 button:hover{
     border-color: blue;
 }
+
+.right-corner {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 24px;
+    border-radius: 50%;
+    background-color: skyblue;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    margin: 4px 2px;
+
+    
+}
+
+.left-corner {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 24px;
+    border-radius: 50%;
+    background-color: skyblue;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    margin: 4px 2px;
+
+    
+}
+
+.right-corner:hover {
+    font-size: 34px;
+    border-radius: 10%;
+}
+
+.left-corner:hover {
+    font-size: 34px;
+    border-radius: 10%;
+}
+
+.btn {
+  background-color: lightgray;
+  color: green;
+  border-radius: 5px;
+  padding: 10px 20px;
+}
+
+.up-arrow {
+  font-size: 30px;
+  color: #000;
+  position: relative;
+  bottom: 15px;
+}
+
+.down-arrow {
+  font-size: 30px;
+  color: #000;
+  position: relative;
+  top: 15px;
+}
+
+.date-input-container {
+  display: block;
+}
+.date-input-container input {
+    margin: 17px;
+    font-size: 24px;
+}
+.date-input-container label {
+    margin: 17px;
+    font-size: 24px;
+}

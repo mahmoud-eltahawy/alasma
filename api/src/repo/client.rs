@@ -1,4 +1,4 @@
-use sqlx::{query,query_as};
+use sqlx::{query, query_as};
 use std::error::Error;
 use uuid::Uuid;
 
@@ -24,13 +24,14 @@ pub async fn fetch_client_by_id(
 
 pub async fn search_client_by_name(
     state: &AppState,
-    name : String,
+    name: String,
 ) -> Result<Vec<Name>, Box<dyn Error>> {
     let name = format!("%{name}%");
-    let coms = query_as!(Name,
+    let coms = query_as!(
+        Name,
         r#"
         select *
-        from client WHERE the_name LIKE $1 LIMIT 4"#,
+        from client WHERE the_name LIKE $1 LIMIT 5"#,
         name
     )
     .fetch_all(&state.db)
@@ -57,10 +58,7 @@ pub async fn save_client(
     state: &AppState,
     client: Client,
 ) -> Result<(), Box<dyn Error>> {
-    let Client {
-        id,
-        the_name,
-    } = client;
+    let Client { id, the_name } = client;
     query!(
         r#"
         INSERT INTO client(
@@ -79,10 +77,7 @@ pub async fn update_client(
     state: &AppState,
     client: Client,
 ) -> Result<(), Box<dyn Error>> {
-    let Client {
-        id,
-        the_name,
-    } = client;
+    let Client { id, the_name } = client;
     query!(
         r#"
         UPDATE client SET
