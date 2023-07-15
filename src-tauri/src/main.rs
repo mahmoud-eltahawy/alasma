@@ -210,7 +210,7 @@ fn main() {
 	    get_company_id,
             get_sheet_sellbills,
         ])
-        .manage(AppState::new())
+        .manage(AppState::default())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -219,8 +219,8 @@ pub struct AppState {
     pub origin: String,
 }
 
-impl AppState {
-    pub fn new() -> Self {
+impl Default for AppState {
+    fn default() -> Self {
         let host = env::var("ERA_HOST").expect("invalid host key");
         let port = env::var("ERA_PORT").expect("invalid port key");
 

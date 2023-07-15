@@ -4,7 +4,11 @@ use leptos_router::*;
 use crate::{
     boughts::Boughts,
     cargos::Cargos,
-    sales::{add::SaleSheetAdd, Sales, ShowSheet},
+    sales::{
+	add::SaleSheetAdd,
+	show::ShowSheet,
+	Sales,
+    },
 };
 
 #[component]

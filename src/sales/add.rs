@@ -1,4 +1,5 @@
 use super::SheetHead;
+
 use std::collections::HashMap;
 
 use bigdecimal::{BigDecimal, FromPrimitive};
@@ -108,16 +109,15 @@ fn save_sheet_to_db(
             };
 
             let company_id = if x.company.id.is_nil() {
-		if let Some(id) = invoke::<NameArg, Uuid>(
+		if let Ok(id) = invoke::<NameArg, Uuid>(
 		    "get_company_id",
 		    &NameArg {
 		    name: x.company.the_name.clone()
 		    },
 		)
-		.await.ok(){
+		.await {
 		    id
-		} else
-                if let Some(id) = saved_companies.get(&x.company.the_name) {
+		} else if let Some(id) = saved_companies.get(&x.company.the_name) {
                     *id
                 } else {
                     let company = Company {
@@ -146,16 +146,15 @@ fn save_sheet_to_db(
             let client_id = match &x.client {
                 Some(client) => {
                     if client.clone().id.is_nil() {
-                        if let Some(id) = invoke::<NameArg, Uuid>(
+                        if let Ok(id) = invoke::<NameArg, Uuid>(
                            "get_client_id",
                            &NameArg {
 			    name: client.the_name.clone()
                             },
                         )
-                        .await.ok(){
+                        .await {
 			    Some(id)
-			} else
-                        if let Some(id) = saved_clients.get(&client.the_name) {
+			} else if let Some(id) = saved_clients.get(&client.the_name) {
                             Some(*id)
                         } else {
                             let client = Client {
