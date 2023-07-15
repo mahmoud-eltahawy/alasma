@@ -5,7 +5,7 @@ mod api;
 
 use api::{
     find_bill_by_id, find_client_by_id, find_company_by_id,
-    find_sheet_sellbills,
+    find_sheet_sellbills, find_company_id_by_name, find_client_id_by_name,
 };
 use chrono::Local;
 use models::backend_api::*;
@@ -152,12 +152,36 @@ async fn get_company(
 }
 
 #[tauri::command]
+async fn get_company_id(
+    app_state: tauri::State<'_, AppState>,
+    name: String, 
+) -> Result<Uuid, String> {
+    println!("check company {}",name);
+    match find_company_id_by_name(&app_state, name.trim().to_string()).await {
+        Ok(com) => Ok(com),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+#[tauri::command]
 async fn get_client(
     app_state: tauri::State<'_, AppState>,
     id: Uuid,
 ) -> Result<Client, String> {
     match find_client_by_id(&app_state, id).await {
         Ok(clt) => Ok(clt),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn get_client_id(
+    app_state: tauri::State<'_, AppState>,
+    name: String, 
+) -> Result<Uuid, String> {
+    println!("check client {}",name);
+    match find_client_id_by_name(&app_state, name.trim().to_string()).await {
+        Ok(com) => Ok(com),
         Err(err) => Err(err.to_string()),
     }
 }
@@ -182,6 +206,8 @@ fn main() {
             top_5_companies,
             top_5_clients,
             top_5_sheets,
+	    get_client_id,
+	    get_company_id,
             get_sheet_sellbills,
         ])
         .manage(AppState::new())

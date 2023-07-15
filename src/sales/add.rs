@@ -1,4 +1,4 @@
-use super::{NaiveSellBill, SheetHead};
+use super::SheetHead;
 use std::collections::HashMap;
 
 use bigdecimal::{BigDecimal, FromPrimitive};
@@ -13,6 +13,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::shared::{alert, new_id};
 use uuid::Uuid;
+
+#[derive(Clone, Default)]
+struct NaiveSellBill {
+    bill: Bill,
+    tax_number: u64,
+    company: Company,
+    client: Option<Client>,
+    value: f64,
+    discount: f64,
+}
 
 #[derive(Serialize, Deserialize)]
 struct SheetArgs {
@@ -38,6 +48,11 @@ struct CompanyArgs {
 #[derive(Serialize, Deserialize)]
 struct ClientArgs {
     client: Client,
+}
+
+#[derive(Serialize, Deserialize)]
+struct NameArg {
+    name: String,
 }
 
 fn save_sheet_to_db(
@@ -93,6 +108,15 @@ fn save_sheet_to_db(
             };
 
             let company_id = if x.company.id.is_nil() {
+		if let Some(id) = invoke::<NameArg, Uuid>(
+		    "get_company_id",
+		    &NameArg {
+		    name: x.company.the_name.clone()
+		    },
+		)
+		.await.ok(){
+		    id
+		} else
                 if let Some(id) = saved_companies.get(&x.company.the_name) {
                     *id
                 } else {
@@ -122,6 +146,15 @@ fn save_sheet_to_db(
             let client_id = match &x.client {
                 Some(client) => {
                     if client.clone().id.is_nil() {
+                        if let Some(id) = invoke::<NameArg, Uuid>(
+                           "get_client_id",
+                           &NameArg {
+			    name: client.the_name.clone()
+                            },
+                        )
+                        .await.ok(){
+			    Some(id)
+			} else
                         if let Some(id) = saved_clients.get(&client.the_name) {
                             Some(*id)
                         } else {
@@ -288,11 +321,6 @@ fn CompleteSection(
     }
 }
 
-#[derive(Serialize, Deserialize)]
-struct NameArg {
-    name: String,
-}
-
 fn search(name: String, topic: String, set_result: WriteSignal<Vec<Name>>) {
     spawn_local(async move {
         match invoke::<_, Vec<Name>>(&topic, &NameArg { name }).await {
@@ -312,10 +340,7 @@ fn Complete(
 ) -> impl IntoView {
     let (result, set_result) = create_signal(
         cx,
-        vec![Name {
-            id: Uuid::nil(),
-            the_name: String::from("صباح الخير او مساء الخير علي حسب التوقيت"),
-        }],
+        vec![],
     );
 
     create_effect(cx, move |_| {

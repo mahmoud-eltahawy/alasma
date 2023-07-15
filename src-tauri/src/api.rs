@@ -172,6 +172,21 @@ pub async fn find_company_by_id(
     Ok(bills)
 }
 
+pub async fn find_company_id_by_name(
+    app_state: &AppState,
+    name : String,
+) -> Result<Uuid, Box<dyn std::error::Error>> {
+    let origin = &app_state.origin;
+    let bills = reqwest::Client::new()
+        .get(format!("{origin}/company/{name}/id"))
+        .send()
+        .await?
+        .json::<Uuid>()
+        .await?;
+
+    Ok(bills)
+}
+
 pub async fn find_client_by_id(
     app_state: &AppState,
     id: Uuid,
@@ -182,6 +197,21 @@ pub async fn find_client_by_id(
         .send()
         .await?
         .json::<Client>()
+        .await?;
+
+    Ok(bills)
+}
+
+pub async fn find_client_id_by_name(
+    app_state: &AppState,
+    name : String,
+) -> Result<Uuid, Box<dyn std::error::Error>> {
+    let origin = &app_state.origin;
+    let bills = reqwest::Client::new()
+        .get(format!("{origin}/client/{name}/id"))
+        .send()
+        .await?
+        .json::<Uuid>()
         .await?;
 
     Ok(bills)

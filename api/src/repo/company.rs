@@ -22,6 +22,21 @@ pub async fn fetch_company_by_id(
     })
 }
 
+pub async fn fetch_company_id_by_name(
+    state: &AppState,
+    the_name : String,
+) -> Result<Uuid, Box<dyn Error>> {
+    let record = query!(
+        r#"
+        select id
+        from company WHERE the_name = $1"#,
+	the_name,
+    )
+    .fetch_one(&state.db)
+    .await?;
+    Ok(record.id)
+}
+
 pub async fn search_company_by_name(
     state: &AppState,
     name: String,

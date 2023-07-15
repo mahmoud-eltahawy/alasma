@@ -9,6 +9,7 @@ use uuid::Uuid;
 pub fn scope() -> Scope {
     web::scope("/client")
         .service(get_by_id)
+        .service(get_id_by_name)
         .service(search_by_name)
         .service(save)
         .service(update)
@@ -21,6 +22,17 @@ async fn get_by_id(
     id: web::Path<Uuid>,
 ) -> impl Responder {
     match fetch_client_by_id(&state, id.into_inner()).await {
+        Ok(dep) => HttpResponse::Ok().json(dep),
+        Err(_) => HttpResponse::InternalServerError().into(),
+    }
+}
+
+#[get("/{name}/id")]
+async fn get_id_by_name(
+    state: Data<AppState>,
+    name: web::Path<String>,
+) -> impl Responder {
+    match fetch_client_id_by_name(&state, name.into_inner()).await {
         Ok(dep) => HttpResponse::Ok().json(dep),
         Err(_) => HttpResponse::InternalServerError().into(),
     }

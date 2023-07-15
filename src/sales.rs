@@ -14,19 +14,14 @@ use uuid::Uuid;
 
 pub mod add;
 
-#[derive(Clone, Default)]
-struct NaiveSellBill {
-    bill: Bill,
-    tax_number: u64,
-    company: Company,
-    client: Option<Client>,
-    value: f64,
-    discount: f64,
-}
-
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 struct SheetArgs {
     params: SheetShearchParams,
+}
+
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
+struct IdArg {
+    id: Uuid,
 }
 
 #[component]
@@ -96,7 +91,7 @@ pub fn Sales(cx: Scope) -> impl IntoView {
 		fallback=|_| view!{cx,<></>}
 	    >
 		<button
-		on:click=move |_| set_offset.update(|x| *x -= 1)
+		on:click=move |_| set_offset.update(|x| *x -= 5)
 		class="btn"
 		>
 		<span class="up-arrow">"↑"</span>
@@ -120,7 +115,7 @@ pub fn Sales(cx: Scope) -> impl IntoView {
 		fallback=|_| view!{cx,<></>}
 	    >
 		<button
-		    on:click=move |_| set_offset.update(|x| *x += 1)
+		    on:click=move |_| set_offset.update(|x| *x += 5)
 		    class="btn"
 		>
 		    <span class="down-arrow">"↓"</span>
@@ -147,11 +142,6 @@ pub fn SheetHead(cx: Scope) -> impl IntoView {
             </tr>
         </thead>
     }
-}
-
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
-struct IdArg {
-    id: Uuid,
 }
 
 #[component]
