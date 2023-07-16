@@ -231,3 +231,18 @@ pub async fn find_companies(
 
     Ok(companies)
 }
+
+pub async fn find_sheet_by_id(
+    app_state: &AppState,
+    id: Uuid,
+) -> Result<Sheet, Box<dyn std::error::Error>> {
+    let origin = &app_state.origin;
+    let sheet = reqwest::Client::new()
+        .get(format!("{origin}/sheet/{id}"))
+        .send()
+        .await?
+        .json::<Sheet>()
+        .await?;
+
+    Ok(sheet)
+}

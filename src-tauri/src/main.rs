@@ -1,7 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod api;
+use dotenv::dotenv;
+use std::env;
 
 use api::{
     find_bill_by_id, find_client_by_id, find_company_by_id,
@@ -10,6 +11,11 @@ use api::{
 use chrono::Local;
 use models::backend_api::*;
 use uuid::Uuid;
+
+mod api;
+mod excel_writers;
+
+use excel_writers::write_sells;
 
 #[tauri::command]
 fn new_id() -> Uuid {
@@ -186,8 +192,18 @@ async fn get_client_id(
     }
 }
 
-use dotenv::dotenv;
-use std::env;
+#[tauri::command]
+async fn write_sells_excel(
+    app_state: tauri::State<'_, AppState>,
+    sheetid: Uuid,
+    sellbills: Vec<SellBill>,
+) -> Result<(), String> {
+    println!("write_sells_excel");
+    match write_sells(&app_state, sheetid, sellbills).await {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err.to_string()),
+    }
+}
 
 fn main() {
     dotenv().ok();
@@ -209,6 +225,7 @@ fn main() {
 	    get_client_id,
 	    get_company_id,
             get_sheet_sellbills,
+	    write_sells_excel,
         ])
         .manage(AppState::default())
         .run(tauri::generate_context!())

@@ -1,5 +1,6 @@
 use leptos::*;
 use leptos_router::*;
+use serde::{Serialize, Deserialize};
 use tauri_sys::tauri::invoke;
 
 use bigdecimal::ToPrimitive;
@@ -7,28 +8,44 @@ use std::str::FromStr;
 
 use uuid::Uuid;
 
+use crate::shared::alert;
+
 use super::{IdArg,SheetHead};
 use models::backend_api::{SellBill,Bill,Company,Client};
+
+#[derive(Serialize,Deserialize)]
+struct WriteArgs{
+    sheetid : Uuid,
+    sellbills : Vec<SellBill>,
+}
 
 #[component]
 pub fn ShowSheet(cx: Scope) -> impl IntoView {
     let params = use_params_map(cx);
-    let id = move || {
-        if let Some(id) = params.with(|params| params.get("id").cloned()) {
-            match Uuid::from_str(&id) {
-                Ok(id) => IdArg { id },
-                Err(_) => IdArg { id: Uuid::nil() },
-            }
-        } else {
-            IdArg { id: Uuid::nil() }
-        }
-    };
+    let sheet_id = move || Uuid::from_str(params.
+	with(|params| params.get("id").cloned())
+	.unwrap_or_default().as_str())
+        .unwrap_or_default();
 
-    let bills = create_resource(cx, id, |value| async move {
-        invoke::<_, Vec<SellBill>>("get_sheet_sellbills", &value)
+    let bills = create_resource(
+	cx,
+	|| (),
+	move |_| async move {
+        invoke::<_, Vec<SellBill>>("get_sheet_sellbills", &IdArg{ id :sheet_id()})
             .await
             .unwrap_or_default()
     });
+
+    let export = move|_| spawn_local(async move {
+	    match invoke::<_,()>("write_sells_excel", &WriteArgs{
+		sheetid : sheet_id(),
+		sellbills: bills.read(cx).unwrap_or_default()
+	    }).await {
+		Ok(_) => alert("تم بنجاج"),
+		Err(err) => alert(err.to_string().as_str())
+	    };
+	}
+    );
 
     view! { cx,
         <section>
@@ -50,6 +67,7 @@ pub fn ShowSheet(cx: Scope) -> impl IntoView {
                     />
                 </tbody>
             </table>
+	    <button on:click=export >"تصدير"</button>
             <Outlet/>
         </section>
     }
