@@ -8,7 +8,7 @@ use std::str::FromStr;
 
 use uuid::Uuid;
 
-use crate::shared::{alert,new_id};
+use crate::shared::{alert,new_id,component::ProgressBar};
 
 use super::{Row,NewTd,CompleteSection,IdArg,SheetHead,NaiveSellBill,InputRow,InputVariables};
 use models::backend_api::{SellBill,Bill,Company,Client, Sheet};
@@ -31,6 +31,8 @@ pub fn ShowSheet(cx: Scope) -> impl IntoView {
 
     let (edit_mode,set_edit_mode) = create_signal(cx, false);
 
+    let (bills_progress,set_bills_progress) = create_signal(cx, (1,1));
+
     let params = use_params_map(cx);
     let sheet_id = move || Uuid::from_str(params.
 	with(|params| params.get("id").cloned())
@@ -50,9 +52,14 @@ pub fn ShowSheet(cx: Scope) -> impl IntoView {
 	cx,
 	|| (),
 	move |_| async move {
-        let sellbills =invoke::<_, Vec<SellBill>>("get_sheet_sellbills", &IdArg{ id :sheet_id()})
+	    set_bills_progress.set((1,2));
+            let sellbills =invoke::<_, Vec<SellBill>>(
+		"get_sheet_sellbills",
+		&IdArg{ id :sheet_id()}
+	    )
             .await
             .unwrap_or_default();
+	    set_bills_progress.set((1,sellbills.len() as i32 + 1));
 	    let mut list = Vec::new();
 	    for sb in sellbills {
 		list.push(
@@ -63,6 +70,9 @@ pub fn ShowSheet(cx: Scope) -> impl IntoView {
 		    client: get_client(sb.client_id.unwrap_or_default()).await,
 		    value: sb.total_cost.unwrap_or_default().to_f64().unwrap_or_default(),
 		    discount: sb.discount.to_f64().unwrap_or_default(),
+		});
+		set_bills_progress.update(|(p,_)| {
+		    *p+=1
 		})
 	    };
 	    list
@@ -170,6 +180,7 @@ pub fn ShowSheet(cx: Scope) -> impl IntoView {
                 />
             </Show>
             <br/>
+	    <ProgressBar progress=bills_progress/>
             <table class="table-excel">
                 <SheetHead/>
                 <tbody>

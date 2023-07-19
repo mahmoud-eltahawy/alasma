@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use tauri_sys::tauri::invoke;
 use uuid::Uuid;
 
+pub mod component;
+
 #[derive(Serialize, Deserialize)]
 pub struct Non;
 
