@@ -6,14 +6,10 @@ use models::backend_api::{Name, SheetShearchParams, SheetType,NaiveSellBill};
 use serde::{Deserialize, Serialize};
 use tauri_sys::tauri::invoke;
 use uuid::Uuid;
+use crate::shared::NameArg;
 
 pub mod add;
 pub mod show;
-
-#[derive(Serialize, Deserialize)]
-struct NameArg {
-    name: String,
-}
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 struct SheetArgs {

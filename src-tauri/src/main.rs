@@ -217,9 +217,30 @@ async fn write_sells_excel(
     }
 }
 
+#[tauri::command]
+async fn update_sheet_name(
+    app_state: tauri::State<'_, AppState>,
+    name: Name,
+) -> Result<(), String> {
+    match api::update_sheet_name(&app_state, &name).await {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+#[tauri::command]
+async fn delete_sellbill(
+    app_state: tauri::State<'_, AppState>,
+    id: Uuid,
+) -> Result<(), String> {
+    match api::delete_sellbill(&app_state, &id).await {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
 fn main() {
     dotenv().ok();
-
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             new_id,
@@ -239,6 +260,8 @@ fn main() {
             get_company_id,
             get_sheet_sellbills,
             write_sells_excel,
+	    update_sheet_name,
+	    delete_sellbill,
         ])
         .manage(AppState::default())
         .run(tauri::generate_context!())

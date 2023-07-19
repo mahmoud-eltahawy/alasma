@@ -4,7 +4,7 @@ use actix_web::{
     web::{self, Data},
     HttpResponse, Responder, Scope,
 };
-use models::backend_api::SheetShearchParams;
+use models::backend_api::{SheetShearchParams, Name};
 use uuid::Uuid;
 
 pub fn scope() -> Scope {
@@ -13,6 +13,7 @@ pub fn scope() -> Scope {
         .service(search)
         .service(save)
         .service(update)
+        .service(update_name)
         .service(delete_by_id)
 }
 
@@ -73,6 +74,18 @@ async fn update(
 ) -> impl Responder {
     let dep = dep.into_inner();
     match update_sheet(&state, dep).await {
+        Ok(_) => HttpResponse::Ok(),
+        Err(_) => HttpResponse::InternalServerError(),
+    }
+}
+
+#[put("/name")]
+async fn update_name(
+    state: Data<AppState>,
+    dep: web::Json<Name>,
+) -> impl Responder {
+    let dep = dep.into_inner();
+    match update_sheet_name(&state, dep).await {
         Ok(_) => HttpResponse::Ok(),
         Err(_) => HttpResponse::InternalServerError(),
     }

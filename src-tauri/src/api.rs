@@ -60,6 +60,24 @@ pub async fn save_sheet(
     }
 }
 
+pub async fn update_sheet_name(
+    app_state: &AppState,
+    name :&Name
+) -> Result<(), Box<dyn std::error::Error>> {
+    let origin = &app_state.origin;
+    let res = reqwest::Client::new()
+        .put(format!("{origin}/sheet/name"))
+        .json(name)
+        .send()
+        .await?;
+
+    if res.status() == StatusCode::OK {
+        Ok(())
+    } else {
+        Err("failed".into())
+    }
+}
+
 pub async fn save_bill(
     app_state: &AppState,
     bill: &Bill,
@@ -86,6 +104,23 @@ pub async fn save_sellbill(
     let res = reqwest::Client::new()
         .post(format!("{origin}/sellbill/"))
         .json(sellbill)
+        .send()
+        .await?;
+
+    if res.status() == StatusCode::OK {
+        Ok(())
+    } else {
+        Err("failed".into())
+    }
+}
+
+pub async fn delete_sellbill(
+    app_state: &AppState,
+    id : &Uuid
+) -> Result<(), Box<dyn std::error::Error>> {
+    let origin = &app_state.origin;
+    let res = reqwest::Client::new()
+        .delete(format!("{origin}/sellbill/{id}"))
         .send()
         .await?;
 

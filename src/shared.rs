@@ -4,6 +4,12 @@ use tauri_sys::tauri::invoke;
 use uuid::Uuid;
 
 pub mod component;
+pub mod function;
+
+#[derive(Serialize, Deserialize)]
+pub struct NameArg {
+    pub name: String,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Non;

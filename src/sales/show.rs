@@ -8,10 +8,10 @@ use std::str::FromStr;
 
 use uuid::Uuid;
 
-use crate::shared::{alert,new_id,component::ProgressBar};
+use crate::shared::{alert,new_id,component::ProgressBar, function::save_sell_bills_to_sheet};
 
 use super::{Row,NewTd,CompleteSection,IdArg,SheetHead,NaiveSellBill,InputRow,InputVariables};
-use models::backend_api::{SellBill,Bill,Company,Client, Sheet};
+use models::backend_api::{SellBill,Bill,Company,Client, Sheet, Name};
 
 #[derive(Serialize,Deserialize)]
 struct WriteArgs{
@@ -19,10 +19,42 @@ struct WriteArgs{
     sellbills : Vec<NaiveSellBill>,
 }
 
+#[derive(Serialize,Deserialize)]
+struct UpdateSheetArgs{
+    name : Name
+}
+
+async fn update_sheet_name(
+    id: Uuid,
+    the_name: String,
+) -> Result<(),Box<dyn std::error::Error>>{
+    if the_name.is_empty() {
+	return Ok(());
+    }
+    invoke::<UpdateSheetArgs, ()>(
+	"update_sheet_name",
+	&UpdateSheetArgs { name: Name { id, the_name } },
+    )
+    .await?;
+    Ok(())
+}
+
+async fn delete_sellbill(
+    id: Uuid,
+) -> Result<(),Box<dyn std::error::Error>>{
+    invoke::<IdArg, ()>(
+	"delete_sellbill",
+	&IdArg{id},
+    )
+    .await?;
+    Ok(())
+}
+
 #[component]
 pub fn ShowSheet(cx: Scope) -> impl IntoView {
     let (sheet_name, set_sheet_name) = create_signal(cx, String::from(""));
     let (list, set_list) = create_signal(cx, Vec::<NaiveSellBill>::new());
+    let (removed_list, set_removed_list) = create_signal(cx, Vec::<Uuid>::new());
 
     let (company_id, set_company_id) = create_signal(cx, None::<Uuid>);
     let (client_id, set_client_id) = create_signal(cx, None::<Uuid>);
@@ -151,6 +183,33 @@ pub fn ShowSheet(cx: Scope) -> impl IntoView {
 	}
     );
 
+    let save_changes = move |_| {
+	spawn_local(async move{
+	    let Sheet { id, the_name, the_date:_, the_type:_ } = sheet.read(cx).unwrap_or_default();
+	    let name = sheet_name.get();
+	    if name != the_name{
+		match update_sheet_name(id, name).await {
+		    Ok(_) => sheet.refetch(),
+		    Err(err) => alert(err.to_string().as_str())
+		};
+	    }
+	    let deleted = removed_list.get(); 
+	    let added = list.get(); 
+	    if !deleted.is_empty() || !added.is_empty() {
+		for id in deleted.into_iter() {
+		    if let Err(err) = delete_sellbill(id).await {
+			alert(err.to_string().as_str());
+		    };
+		}
+		save_sell_bills_to_sheet(id, added).await;
+		bills.refetch();
+		set_removed_list.set(Vec::new());
+		set_list.set(Vec::new());
+	    }
+	});
+	set_edit_mode.set(false)
+    };
+
     view! { cx,
         <section>
             <A class="left-corner" href="/sales">
@@ -190,7 +249,11 @@ pub fn ShowSheet(cx: Scope) -> impl IntoView {
                         view=move |cx, s| {
                             view! { cx,
                                 <Row element=s.clone()>
-                                    <BillNumberTd removable=edit_mode bill_number=s.bill.bill_number/>
+                                    <BillNumberTd
+				    removable=edit_mode
+				    bill=s.bill
+				    removed=removed_list
+				    set_removed=set_removed_list/>
                                 </Row>
                             }
                         }
@@ -230,7 +293,7 @@ pub fn ShowSheet(cx: Scope) -> impl IntoView {
                     view! { cx, <button on:click=move |_| set_edit_mode.set(true)>"تعديل"</button> }
                 }
             >
-                <button on:click=move |_| set_edit_mode.set(false)>"تاكيد"</button>
+                <button on:click=save_changes>"تاكيد"</button>
                 <CompleteSection
                     client_name=client_name
                     set_client_name=set_client_name
@@ -275,19 +338,39 @@ async fn get_client(id : Uuid) -> Option<Client>{
 fn BillNumberTd(
     cx: Scope,
     removable : ReadSignal<bool>,
-    bill_number : i64,
+    removed : ReadSignal<Vec<Uuid>>,
+    set_removed : WriteSignal<Vec<Uuid>>,
+    bill : Bill,
 ) -> impl IntoView{
     let (hover, set_hover) = create_signal(cx, false);
 
-    let remove_from_list = move |_| {};
+    let remove_from_list = move |_| set_removed
+	.update(|xs| xs.push(bill.id));
+
+    let remove_from_remove_list = move |_| set_removed
+	.update(|xs| xs.retain(|x| *x != bill.id));
     
     view! { cx,
         <td on:mouseleave=move |_| set_hover.set(false)>
             {move || {
-                if hover.get() && removable.get() {
+		let can_edit = hover.get() && removable.get();
+		let is_removed = removed.get().contains(&bill.id);
+                if can_edit && !is_removed{
                     view! { cx, <button on:click=remove_from_list>"حذف"</button> }
-                } else {
-                    view! { cx, <button on:click=move |_| set_hover.set(true)>{bill_number}</button> }
+                } else if can_edit && is_removed{
+                    view! { cx, <button on:click=remove_from_remove_list>"الغاء"</button> }
+		} else {
+                    view! { cx, <button
+			    on:click=move |_| set_hover.set(true)>
+			    {
+				if is_removed {
+				    view!{cx,<><del>{bill.bill_number} "X"</del></>}
+				} else {
+				    view!{cx,<>{bill.bill_number}</>}
+				}
+			    }
+			    </button>
+		    }
                 }
             }}
         </td>

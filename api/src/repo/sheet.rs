@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use models::backend_api::SheetType;
+use models::backend_api::{SheetType, Name};
 use sqlx::query;
 use std::error::Error;
 use uuid::Uuid;
@@ -249,6 +249,24 @@ pub async fn update_sheet(
         the_name,
         the_date,
         serde_json::json!(the_type).to_string(),
+    )
+    .execute(&state.db)
+    .await?;
+    Ok(())
+}
+
+pub async fn update_sheet_name(
+    state: &AppState,
+    name: Name,
+) -> Result<(), Box<dyn Error>> {
+    let Name { id, the_name } = name;
+    query!(
+        r#"
+        UPDATE sheet SET
+	    the_name = $2
+        WHERE id = $1"#,
+        id,
+        the_name,
     )
     .execute(&state.db)
     .await?;
