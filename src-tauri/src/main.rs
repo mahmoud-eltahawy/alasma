@@ -5,8 +5,9 @@ use dotenv::dotenv;
 use std::env;
 
 use api::{
-    find_bill_by_id, find_client_by_id, find_company_by_id,
-    find_sheet_sellbills, find_company_id_by_name, find_client_id_by_name,
+    find_bill_by_id, find_client_by_id, find_client_id_by_name,
+    find_company_by_id, find_company_id_by_name, find_sheet_by_id,
+    find_sheet_sellbills,
 };
 use chrono::Local;
 use models::backend_api::*;
@@ -160,9 +161,9 @@ async fn get_company(
 #[tauri::command]
 async fn get_company_id(
     app_state: tauri::State<'_, AppState>,
-    name: String, 
+    name: String,
 ) -> Result<Uuid, String> {
-    println!("check company {}",name);
+    println!("check company {}", name);
     match find_company_id_by_name(&app_state, name.trim().to_string()).await {
         Ok(com) => Ok(com),
         Err(err) => Err(err.to_string()),
@@ -181,11 +182,22 @@ async fn get_client(
 }
 
 #[tauri::command]
+async fn get_sheet(
+    app_state: tauri::State<'_, AppState>,
+    id: Uuid,
+) -> Result<Sheet, String> {
+    match find_sheet_by_id(&app_state, id).await {
+        Ok(sheet) => Ok(sheet),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+#[tauri::command]
 async fn get_client_id(
     app_state: tauri::State<'_, AppState>,
-    name: String, 
+    name: String,
 ) -> Result<Uuid, String> {
-    println!("check client {}",name);
+    println!("check client {}", name);
     match find_client_id_by_name(&app_state, name.trim().to_string()).await {
         Ok(com) => Ok(com),
         Err(err) => Err(err.to_string()),
@@ -196,7 +208,7 @@ async fn get_client_id(
 async fn write_sells_excel(
     app_state: tauri::State<'_, AppState>,
     sheetid: Uuid,
-    sellbills: Vec<SellBill>,
+    sellbills: Vec<NaiveSellBill>,
 ) -> Result<(), String> {
     println!("write_sells_excel");
     match write_sells(&app_state, sheetid, sellbills).await {
@@ -218,14 +230,15 @@ fn main() {
             get_bill,
             get_company,
             get_client,
+            get_sheet,
             save_sell_bill,
             top_5_companies,
             top_5_clients,
             top_5_sheets,
-	    get_client_id,
-	    get_company_id,
+            get_client_id,
+            get_company_id,
             get_sheet_sellbills,
-	    write_sells_excel,
+            write_sells_excel,
         ])
         .manage(AppState::default())
         .run(tauri::generate_context!())

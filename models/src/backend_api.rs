@@ -3,14 +3,15 @@ use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq,Default)]
 pub enum SheetType {
+    #[default]
     Sells,
     Boughts,
     Types,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone,Default)]
 pub struct Sheet {
     pub id: Uuid,
     pub the_name: String,
@@ -76,6 +77,16 @@ pub struct Client {
 pub struct Company {
     pub id: Uuid,
     pub the_name: String,
+}
+
+#[derive(Clone, Default,Serialize,Deserialize)]
+pub struct NaiveSellBill {
+    pub bill: Bill,
+    pub tax_number: u64,
+    pub company: Company,
+    pub client: Option<Client>,
+    pub value: f64,
+    pub discount: f64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

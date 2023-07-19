@@ -1,29 +1,18 @@
-use super::SheetHead;
+use super::{Row,CompleteSection,SheetHead,InputRow,InputVariables,NameArg,NewTd};
 
 use std::collections::HashMap;
 
 use bigdecimal::{BigDecimal, FromPrimitive};
-use chrono::{Local, NaiveDate};
 use leptos::*;
 use leptos_router::*;
 
 use tauri_sys::tauri::invoke;
 
-use models::backend_api::{Bill, Client, Company, Name, SellBill};
+use models::backend_api::{Bill, Client, Company, SellBill,NaiveSellBill};
 use serde::{Deserialize, Serialize};
 
 use crate::shared::{alert, new_id};
 use uuid::Uuid;
-
-#[derive(Clone, Default)]
-struct NaiveSellBill {
-    bill: Bill,
-    tax_number: u64,
-    company: Company,
-    client: Option<Client>,
-    value: f64,
-    discount: f64,
-}
 
 #[derive(Serialize, Deserialize)]
 struct SheetArgs {
@@ -49,11 +38,6 @@ struct CompanyArgs {
 #[derive(Serialize, Deserialize)]
 struct ClientArgs {
     client: Client,
-}
-
-#[derive(Serialize, Deserialize)]
-struct NameArg {
-    name: String,
 }
 
 async fn save_new_sheet_header(
@@ -337,11 +321,15 @@ pub fn SaleSheetAdd(cx: Scope) -> impl IntoView {
                         each=move || list.get()
                         key=|b| b.bill.bill_number
                         view=move |cx, b| {
-                            view! { cx, <ShowRow element=b set_list=set_list/> }
+                            view! { cx,
+                                <Row element=b.clone()>
+                                    <NewTd set_list=set_list bill_number=b.bill.bill_number/>
+                                </Row>
+                            }
                         }
                     />
                     <InputRow
-	                append=append
+                        append=append
                         company_name=company_name
                         set_company_name=set_company_name
                         client_name=client_name
@@ -365,244 +353,5 @@ pub fn SaleSheetAdd(cx: Scope) -> impl IntoView {
             />
             <Outlet/>
         </div>
-    }
-}
-
-#[component]
-fn CompleteSection(
-    cx: Scope,
-    client_name: ReadSignal<String>,
-    set_client_name: WriteSignal<String>,
-    set_client_id: WriteSignal<Option<Uuid>>,
-    company_name: ReadSignal<String>,
-    set_company_name: WriteSignal<String>,
-    set_company_id: WriteSignal<Option<Uuid>>,
-) -> impl IntoView {
-    view! { cx,
-        <>
-            <section>
-                <Complete
-                    name=company_name
-                    set_name=set_company_name
-                    set_id=set_company_id
-                    search_topic=String::from("top_5_companies")
-                />
-                <Complete
-                    name=client_name
-                    set_name=set_client_name
-                    set_id=set_client_id
-                    search_topic=String::from("top_5_clients")
-                />
-            </section>
-        </>
-    }
-}
-
-fn search(name: String, topic: String, set_result: WriteSignal<Vec<Name>>) {
-    spawn_local(async move {
-        match invoke::<_, Vec<Name>>(&topic, &NameArg { name }).await {
-            Ok(v) => set_result.set(v),
-            Err(err) => log!("{:#?}", err),
-        };
-    });
-}
-
-#[component]
-fn Complete(
-    cx: Scope,
-    name: ReadSignal<String>,
-    set_name: WriteSignal<String>,
-    set_id: WriteSignal<Option<Uuid>>,
-    search_topic: String,
-) -> impl IntoView {
-    let (result, set_result) = create_signal(
-        cx,
-        vec![],
-    );
-
-    create_effect(cx, move |_| {
-        let name = name.get();
-        if name.is_empty() {
-            return;
-        }
-        search(name, search_topic.clone(), set_result);
-    });
-
-    view! { cx,
-        <ol>
-            <For
-                each=move || result.get()
-                key=|x| x.id
-                view=move |cx, x| {
-                    let name = x.the_name.clone();
-                    view! { cx,
-                        <li on:click=move |_| {
-                            if !x.id.is_nil() {
-                                set_id.set(Some(x.id));
-                                set_name.set(name.clone());
-                            }
-                        }>
-                            <p>{x.the_name}</p>
-                        </li>
-                    }
-                }
-            />
-        </ol>
-    }
-}
-
-#[component]
-fn ShowRow(
-    cx: Scope,
-    element: NaiveSellBill,
-    set_list: WriteSignal<Vec<NaiveSellBill>>,
-) -> impl IntoView {
-    let (hover, set_hover) = create_signal(cx, false);
-    let tax = element.value * 0.14;
-    let total = element.value + tax - element.discount;
-
-    let remove_from_list = move |_| {
-        set_list.update(|xs| {
-            xs.retain(|x| x.bill.bill_number != element.bill.bill_number)
-        })
-    };
-
-    view! { cx,
-        <tr>
-            <td on:mouseleave=move |_| set_hover.set(false)>
-                {move || {
-                    if hover.get() {
-                        view! { cx, <button on:click=remove_from_list>"حذف"</button> }
-                    } else {
-                        view! { cx, <button on:click=move |_| set_hover.set(true)>{element.bill.bill_number}</button> }
-                    }
-                }}
-            </td>
-            <td>{element.bill.the_date.to_string()}</td>
-            <td>{element.tax_number}</td>
-            <td>{element.company.the_name}</td>
-            <td>{element.client.map(|x| x.the_name)}</td>
-            <td>{element.value}</td>
-            <td>{format!("{:.2}", tax)}</td>
-            <td>{element.discount}</td>
-            <td>{total}</td>
-        </tr>
-    }
-}
-
-struct InputVariables{
-    bill_number : ReadSignal<u64>,
-    tax_number : ReadSignal<u64>,
-    bill_date : ReadSignal<NaiveDate>,
-    value : ReadSignal<f64>,
-    discount : ReadSignal<f64>,
-}
-
-#[component]
-fn InputRow<F>(
-    cx: Scope,
-    append : F,
-    client_name: ReadSignal<String>,
-    set_client_name: WriteSignal<String>,
-    company_name: ReadSignal<String>,
-    set_company_name: WriteSignal<String>,
-    set_client_id: WriteSignal<Option<Uuid>>,
-    set_company_id: WriteSignal<Option<Uuid>>,
-) -> impl IntoView
-    where F : Fn(InputVariables) + 'static
-{
-    let today = Local::now().date_naive();
-
-    let (bill_number, set_bill_number): (ReadSignal<u64>, WriteSignal<u64>) =
-        create_signal(cx, 0);
-    let (bill_date, set_bill_date) = create_signal(cx, today);
-    let (tax_number, set_tax_number): (ReadSignal<u64>, WriteSignal<u64>) =
-        create_signal(cx, 0);
-    let (value, set_value) = create_signal(cx, 0.0);
-    let (discount, set_discount) = create_signal(cx, 0.0);
-
-    let tax = move || value.get() * 0.14;
-
-    let total = move || value.get() + tax() - discount.get();
-
-    let on_click = move |_| append(InputVariables {
-	bill_number,
-	tax_number,
-	bill_date,
-	value,
-	discount
-    }); 
-
-    view! { cx,
-        <>
-            <tr>
-                <td>
-                    <input
-                        type="number"
-                        value=move || bill_number.get()
-                        on:input=move |ev| set_bill_number.set(event_target_value(&ev).parse().unwrap_or_default())
-                    />
-                </td>
-                <td>
-                    <input
-                        type="date"
-                        value=move || bill_date.get().to_string()
-                        on:input=move |ev| set_bill_date.set(event_target_value(&ev).parse().unwrap_or_default())
-                    />
-                </td>
-                <td>
-                    <input
-                        type="number"
-                        value=move || tax_number.get()
-                        on:input=move |ev| set_tax_number.set(event_target_value(&ev).parse().unwrap_or_default())
-                    />
-                </td>
-                <CompletableTd name=company_name set_name=set_company_name set_id=set_company_id/>
-                <CompletableTd name=client_name set_name=set_client_name set_id=set_client_id/>
-                <td>
-                    <input
-                        type="number"
-                        value=move || value.get()
-                        on:input=move |ev| set_value.set(event_target_value(&ev).parse().unwrap_or_default())
-                    />
-                </td>
-                <td>{move || format!("{:.2}", tax())}</td>
-                <td>
-                    <input
-                        type="number"
-                        value=move || discount.get()
-                        on:input=move |ev| set_discount.set(event_target_value(&ev).parse().unwrap_or_default())
-                    />
-                </td>
-                <td>{move || format!("{:.2}", total())}</td>
-            </tr>
-            <tr class="spanA">
-                <td>
-                    <button on:click=on_click>"اضافة"</button>
-                </td>
-            </tr>
-        </>
-    }
-}
-
-#[component]
-fn CompletableTd(
-    cx: Scope,
-    name: ReadSignal<String>,
-    set_name: WriteSignal<String>,
-    set_id: WriteSignal<Option<Uuid>>,
-) -> impl IntoView {
-    view! { cx,
-        <td>
-            <input
-                type="string"
-                value=move || name.get()
-                on:input=move |ev| {
-                    set_name.set(event_target_value(&ev));
-                    set_id.set(None);
-                }
-            />
-            <p>{move || name.get()}</p>
-        </td>
     }
 }

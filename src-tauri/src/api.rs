@@ -174,7 +174,7 @@ pub async fn find_company_by_id(
 
 pub async fn find_company_id_by_name(
     app_state: &AppState,
-    name : String,
+    name: String,
 ) -> Result<Uuid, Box<dyn std::error::Error>> {
     let origin = &app_state.origin;
     let bills = reqwest::Client::new()
@@ -204,7 +204,7 @@ pub async fn find_client_by_id(
 
 pub async fn find_client_id_by_name(
     app_state: &AppState,
-    name : String,
+    name: String,
 ) -> Result<Uuid, Box<dyn std::error::Error>> {
     let origin = &app_state.origin;
     let bills = reqwest::Client::new()
